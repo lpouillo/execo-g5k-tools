@@ -1,4 +1,4 @@
-g5k-engines
-===========
+execo-g5k-tools
+===============
 
-A repository for experimental engine based on execo to perform tests and measurements on the Grid'5000 platform.
+A repository for experimental scripts and engines based on execo to perform deployments, tests and experiments on the Grid'5000 platform.
