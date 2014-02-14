@@ -5,9 +5,10 @@ from execo_engine import *
 from pprint import pformat
 
 
-
 class kadeploy_dev_test(Engine):
-    """A execo engine to perform test of various configuration for kadeploy-dev."""
+    """A execo engine to perform test of various configuration 
+    of kadeploy and kadeploy-dev.
+    """
 
     def create_paramsweeper(self):
         """Test all the sites, with or without a KaVLAN and for several env."""
@@ -17,9 +18,8 @@ class kadeploy_dev_test(Engine):
             "kavlan": [True, False],
             "n_nodes": [1, 5, 10],
             "env": ['wheezy-x64-base', 'wheezy-x64-prod', 'wheezy-x64-xen',
-                '/home/lpouilloux/synced/environments/kvm-nocompression/kvm-1.5-nocompression.env',
-                '/home/lpouilloux/synced/environments/vm5k/vm5k.env',]
-                  
+    '/home/lpouilloux/synced/environments/kvm-nocompression/kvm-1.5-nocompression.env',
+    '/home/lpouilloux/synced/environments/vm5k/vm5k.env']
             }
         logger.info('Defining parameters: %s', pformat(params))
         combs = sweep(params)
@@ -68,3 +68,8 @@ class kadeploy_dev_test(Engine):
                 logger.warning('%s encountered problems with some hosts', slugify(comb))
 
             sweeper.done(comb)
+
+
+if __name__ == "__main__":
+    e = kadeploy_dev_test()
+    e.start()
