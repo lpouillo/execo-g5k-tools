@@ -14,14 +14,13 @@ class kadeploy_dev_test(Engine):
         """Test all the sites, with or without a KaVLAN and for several env."""
         params = {
             "version": ['kadeploy3-dev', 'kadeploy3'],
-            "site": get_g5k_sites(),
             "kavlan": [True, False],
-            "n_nodes": [1, 5, 10],
-            "env": ['wheezy-x64-base', 'wheezy-x64-prod', 'wheezy-x64-xen',
-    '/home/lpouilloux/synced/environments/kvm-nocompression/kvm-1.5-nocompression.env',
-    '/home/lpouilloux/synced/environments/vm5k/vm5k.env']
+            "elements": get_g5k_sites() + get_g5k_clusters() + ['grid5000'],
+            "n_nodes": [1, 4],
+            "env": ['wheezy-x64-base', 'wheezy-x64-prod', 'wheezy-x64-xen',]
             }
         logger.info('Defining parameters: %s', pformat(params))
+        exit()
         combs = sweep(params)
         return ParamSweeper(self.result_dir + "/sweeper", combs)
 
@@ -30,14 +29,20 @@ class kadeploy_dev_test(Engine):
 
         while len(sweeper.get_remaining()) > 0:
             comb = sweeper.get_next()
+            print comb
+            exit()
+#            site = comb['site'] + '.grid5000.fr'
             g5k_configuration['kadeploy3'] = comb['version']
             logger.info('Treating combination %s', pformat(comb))
             resources = ""
             if comb['kavlan']:
                 resources += "{type='kavlan'}/vlan=1+"
-            resources += "nodes="+str(comb['n_nodes'])
-            sub = OarSubmission(resources = resources, job_type = 'deploy', walltime = "0:30:00" )
-            logger.info('Performing reservation of %s on site %s', resources, comb['site'])
+            resources += "nodes=" + str(comb['n_nodes'])
+            sub = OarSubmission(resources=resources,
+                                job_type='deploy',
+                                walltime="0:30:00")
+            logger.info('Performing reservation of %s on site %s',
+                        resources, comb['site'])
             jobs = oarsub( [ (sub, comb['site']) ])
 
             if jobs[0][0]:
@@ -51,11 +56,13 @@ class kadeploy_dev_test(Engine):
                         logger.info('In kavlan %s', kavlan)
                     logger.setLevel('DEBUG')
                     if '.env' in comb['env']:
-                        deployed, undeployed = deploy(Deployment(hosts, env_file = comb['env'],
-                                    vlan = kavlan), out = True)
+                        deployed, undeployed = deploy(Deployment(hosts,
+                                    env_file=comb['env'],
+                                    vlan=kavlan), out=True)
                     else:
-                        deployed, undeployed = deploy(Deployment(hosts, env_name = comb['env'],
-                                    vlan = kavlan), out = True)
+                        deployed, undeployed = deploy(Deployment(hosts,
+                                    env_name=comb['env'],
+                                    vlan=kavlan), out=True)
                     logger.setLevel('INFO')
                 finally:
                     oardel([(jobs[0][0], jobs[0][1])])
@@ -73,3 +80,4 @@ class kadeploy_dev_test(Engine):
 if __name__ == "__main__":
     e = kadeploy_dev_test()
     e.start()
+    

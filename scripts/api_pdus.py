@@ -14,7 +14,7 @@ for site in sites:
         for pdu in get_resource_attributes('/sites/'+site+'/pdus/')['items']:            
             try:
                 log += '\n'+style.host(pdu['uid'])
-                
+
                 if pdu.has_key('sensors'):
 #                    if site == 'rennes':
 #                        pprint(pdu['sensors'])
