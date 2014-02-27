@@ -1,0 +1,21 @@
+#!/usr/bin/env python
+from socket import gethostname
+from execo import Host, Local, ParallelActions, logger
+from execo_g5k.api_utils import get_g5k_sites
+
+logger.setLevel('DEBUG')
+directory = '/home/lpouilloux/synced'
+
+source = 'lyon'
+dests = get_g5k_sites()
+dests.remove(source)
+
+sync_actions = []
+for dest in dests:
+	logger.info('Copying from '+source+' to '+dest)
+	cmd = 'rsync -avuP '+directory+'/ '+str(dest)+':'+directory
+	sync = Local( cmd)
+	sync_actions.append(sync)
+logger.info('Launching parallel copy')
+ParallelActions(sync_actions).run()
+
