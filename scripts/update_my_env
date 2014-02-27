@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 import argparse
 from time import strftime
-from execo import logger, SshProcess, Process
+from socket import getfqdn
+from execo import logger, SshProcess, Process, Local, ParallelActions
 from execo_g5k import get_planning, compute_slots, find_free_slot, \
     distribute_hosts, get_jobs_specs, oarsub, Deployment, deploy, \
-    oardel, get_oar_job_nodes, g5k_configuration
+    oardel, get_oar_job_nodes, g5k_configuration, get_g5k_sites
 
 logger.setLevel('INFO')
 
@@ -48,18 +49,16 @@ else:
     kaenv_add = False
     path = args.env_file.split('.')
 
+logger.info('Performing reservation')
+planning = get_planning([args.cluster])
+slots = compute_slots(planning, args.walltime)
+start_date, end_date, resources = find_free_slot(slots, {args.cluster: 1})
+resources = distribute_hosts(resources, {args.cluster: 1})
+job_specs = get_jobs_specs(resources)
+for job_spec in job_specs:
+    job_spec[0].job_type = "deploy"
+job = oarsub(job_specs)
 
-#logger.info('Performing reservation')
-#planning = get_planning([args.cluster])
-#slots = compute_slots(planning, args.walltime)
-#start_date, end_date, resources = find_free_slot(slots, {args.cluster: 1})
-#resources = distribute_hosts(resources, {args.cluster: 1})
-#job_specs = get_jobs_specs(resources)
-#for job_spec in job_specs:
-#    job_spec[0].job_type = "deploy"
-#job = oarsub(job_specs)
-
-job = [(47282, 'luxembourg')]
 
 if job[0][0]:
     try:
@@ -82,12 +81,31 @@ if job[0][0]:
             dump_env.shell = True
             dump_env.run()
             if dump_env.ok:
-                cmd = 'old_tar=`grep "file:" ' + args.env_file + ' |awk \'{print $2}\'` ; ' + \
-                    'sed -i "s/$old_tar/' + new_tar + '/g" ' + args.env_file
-                sed_env = Process(cmd).run()
+
+                cmd = "old_tar=`grep \"file:\" " + args.env_file + " |awk '{print $2}'` ; " + \
+                    "sed -i \"s|$old_tar|" + new_tar + "|g\" " + args.env_file
+
+                sed_env = Process(cmd)
+                sed_env.shell = True
+                sed_env.run()
                 if sed_env.ok:
                     logger.info('Environnent file updated succesfully')
 
     finally:
         logger.info('Destroying job')
-#        oardel(job)
+        oardel(job)
+
+
+source = getfqdn().split('.')[1]
+dests = get_g5k_sites()
+dests.remove(source)
+directory = "/".join(path[0].split('/')[0:-1])
+
+sync_actions = []
+for dest in dests:
+    cmd = 'rsync -avuP ' + directory + '/ ' + str(dest) + ':' + directory
+    sync = Local(cmd)
+    sync_actions.append(sync)
+logger.info('Launching parallel copy from %s to %s', source, ','.join(dests))
+ParallelActions(sync_actions).run()
+
