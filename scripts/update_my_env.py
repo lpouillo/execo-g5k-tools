@@ -1,0 +1,93 @@
+#!/usr/bin/env python
+import argparse
+from time import strftime
+from execo import logger, SshProcess, Process
+from execo_g5k import get_planning, compute_slots, find_free_slot, \
+    distribute_hosts, get_jobs_specs, oarsub, Deployment, deploy, \
+    oardel, get_oar_job_nodes, g5k_configuration
+
+logger.setLevel('INFO')
+
+prog = 'update_my_env'
+desc = 'A tool to deploy and update a Kadeploy environment on Grid\'5000'
+
+parser = argparse.ArgumentParser(prog=prog, description=desc,
+            formatter_class=argparse.RawTextHelpFormatter)
+
+env = parser.add_mutually_exclusive_group()
+env.add_argument('-e', '--env_name',
+                    dest='env_name',
+                    help='define the environnement you want to update')
+env.add_argument('-a', '--env_file',
+                    dest='env_file',
+                    help='define the environnement you want to update')
+parser.add_argument('-c', '--cluster',
+                    dest='cluster',
+                    default='petitprince',
+                    help='choose the cluster on which ')
+parser.add_argument('-w', '--walltime',
+                    dest='walltime',
+                    default='1:00:00',
+                    help='choose the cluster on which ')
+
+args = parser.parse_args()
+
+if args.env_name:
+    logger.error('Not implemented')
+    exit()
+    env_file = None
+    kaenv_add = True
+    if not ':' in args.env_name:
+        env_name, env_user = args.env_name, None
+    else:
+        env_user, env_name = args.env_name.split(':')
+    path = ''
+else:
+    env_name = None
+    env_user = None
+    kaenv_add = False
+    path = args.env_file.split('.')
+
+
+#logger.info('Performing reservation')
+#planning = get_planning([args.cluster])
+#slots = compute_slots(planning, args.walltime)
+#start_date, end_date, resources = find_free_slot(slots, {args.cluster: 1})
+#resources = distribute_hosts(resources, {args.cluster: 1})
+#job_specs = get_jobs_specs(resources)
+#for job_spec in job_specs:
+#    job_spec[0].job_type = "deploy"
+#job = oarsub(job_specs)
+
+job = [(47282, 'luxembourg')]
+
+if job[0][0]:
+    try:
+        nodes = get_oar_job_nodes(job[0][0], job[0][1])
+        logger.info("Deploying on %s ",  nodes[0].address)
+        deployed, undeployed = deploy(Deployment(nodes,
+                env_name=env_name, env_file=args.env_file, user=env_user))
+        if len(deployed) == 1:
+            host = list(deployed)[0]
+            logger.info("Upgrading %s ", host)
+            cmd = "echo 'debconf debconf/frontend select noninteractive' | debconf-set-selections ; " + \
+              "echo 'debconf debconf/priority select critical' | debconf-set-selections ; " + \
+              "export DEBIAN_MASTER=noninteractive ; apt-get update ; " + \
+              "apt-get dist-upgrade -y --force-yes -o Dpkg::Options::='--force-confdef' " + \
+              "-o Dpkg::Options::='--force-confold' "
+            upgrade = SshProcess(cmd, host).run()
+            logger.info('Saving environments with tgz-g5k')
+            new_tar = path[0] + '_' + strftime("%Y%m%d") + '.tgz'
+            dump_env = Process('ssh root@' + host + ' tgz-g5k > ' + new_tar)
+            dump_env.shell = True
+            dump_env.run()
+            if dump_env.ok:
+                cmd = 'old_tar=`grep "file:" ' + args.env_file + ' |awk \'{print $2}\'` ; ' + \
+                    'sed -i "s/$old_tar/' + new_tar + '/g" ' + args.env_file
+                sed_env = Process(cmd).run()
+                if sed_env.ok:
+                    logger.info('Environnent file updated succesfully')
+
+    finally:
+        logger.info('Destroying job')
+#        oardel(job)
