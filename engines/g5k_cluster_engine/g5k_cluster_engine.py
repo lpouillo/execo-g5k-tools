@@ -161,7 +161,7 @@ class g5k_cluster_engine(Engine):
                 ((th.jobid, _),) = oarsub([(oarsubmission, site)])
             if not th.jobid:
                 worker_log.detail("job submission failed")
-                self.worker(cluster, site, data, [], worker_index, oarsubmission, None)
+                self.worker(cluster, site, data, None, worker_index, oarsubmission, None)
             worker_log.detail("job submitted - wait job start")
             wait_oar_job_start(th.jobid, site,
                                prediction_callback = lambda ts:
@@ -234,7 +234,7 @@ class g5k_cluster_engine(Engine):
         :param data: opaque client data passed to
           ``g5k_cluster_engine.get_job``.
 
-        :param nodes: list of nodes for this job. Empty list if job
+        :param nodes: list of nodes for this job. None if job
         submission / wait / nodes list retrieval failed.
 
         :param worker_index: an index incremented for each worker
