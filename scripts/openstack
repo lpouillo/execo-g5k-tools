@@ -1,15 +1,79 @@
 #!/usr/bin/env python
 
-from pprint import pformat
-from execo import ProcessLifecycleHandler, Remote, Host
-from execo import logger
-from execo_g5k import *
-import argparse
+"""
+Deploy an openstack environment on Grid5000
+Example:
+    ./openstack.py -r -kad -w 2:0:0 -onn 3 reims stremi
+        deploys a cloud for 2 hours on 3 nodes (1 controller + 2 computes)
+    ./openstack.py -r -kad -w 2:0:0 -onn 3 -cn 2 reims stremi
+        deploys 2 clouds for 2 hours on 2 nodes each (1 controller + 1 compute)
+    ./openstack.py -jid 163221 -onn 2 -cn 3 reims stremi
+        deploys 3 clouds of 2 nodes on nodes reserved for the job 163221
+        You must ensure there are 6 nodes in the reservation
 
-logger.setLevel('INFO')
+"""
+
+import argparse
+import uuid
+from pprint import pformat
+import time
+from threading import Thread
+from execo import (
+    Host,
+    logger,
+    ProcessLifecycleHandler,
+    Remote
+)
+from execo_g5k import (
+    Deployment,
+    deploy,
+    default_frontend_connection_params,
+    get_oar_job_nodes,
+    get_oar_job_kavlan,
+    OarSubmission,
+    oarsub,
+    wait_oar_job_start
+)
+
+
+class Error(Exception):
+    """ Base class for exception in this module
+    """
+    pass
+
+
+class OpenstackInstallationError(Error):
+    """ Raised when detecting an improper openstack installation
+
+    Attributes:
+        nodes -- nodes (list of str) on which openstack is not well installed
+        msg   -- message to display
+    """
+    def __init__(self, nodes):
+        Error.__init__(self)
+        self.nodes = nodes
+        self.msg = ("Openstack is not well deployed on nodes: %s" %
+                    ', '.join(nodes))
+
+
+class KadeployError(Error):
+    """ Raised when nodes are not well deployed
+
+    Attributes:
+        nodes -- nodes (list of str) not correctly deployed
+        msg   -- message to display
+    """
+    def __init__(self, nodes):
+        Error.__init__(self)
+        self.nodes = nodes
+        self.msg = ("Some nodes are not deployed properly: %s" %
+                    ', '.join(nodes))
 
 
 class NotifyAtEnd(ProcessLifecycleHandler):
+    """
+    Class to log an info message at the end of a remote or local task
+    """
 
     def __init__(self, message):
         self.message = message
@@ -18,205 +82,294 @@ class NotifyAtEnd(ProcessLifecycleHandler):
         logger.info(self.message)
 
 
-####################### Parameters #################
-##
-## 1 - Configuring the parser
-## 2 - Handling undefined arguments
+def get_controller_nodes(os_hosts, connection_params=None):
+    """
+    Gets the hostname of the openstack's controllers node.
+    Also checks that openstack is well deployed on nodes ``os_hosts``.
 
+    Raises an OpenstackInstallationError if any node is not correctly deployed
+    """
 
-## Configuring the parser
+    logger.info("Checking Openstack installation on %s" % pformat(os_hosts))
+    get_hostname = Remote('if [ -f /etc/nova/nova.conf ];'
+                          'then grep "rabbit_host=" /etc/nova/nova.conf'
+                          ' | cut -d"=" -f2; else false;fi',
+                          os_hosts,
+                          connection_params=connection_params).run()
+    os_controllers = set()
+    openstack_well_installed = True
+    failed_nodes = []
+    for a_process in get_hostname.processes:
+        if not a_process.finished_ok:
+            failed_nodes.append(pformat(a_process.host.address))
+            openstack_well_installed = False
+        else:
+            os_controllers.add(a_process.stdout.rstrip())
 
-parser = argparse.ArgumentParser(description="Install openstack on G5K",
-                                 fromfile_prefix_chars='@')
-parser.add_argument("site",
-                    help="site on which experiments are carried out")
-parser.add_argument("cluster",
-                    help="cluster on which experiments are carried out")
-parser.add_argument("switch", default="*", nargs='?',
-                    help="switch on which nodes are connected")
-
-parser.add_argument("-r", "--reservation", default=False,
-                    help="make a reservation", action="store_true")
-parser.add_argument("-kad", "--kadeploy", default=False,
-                    help="make a kadeployment", action="store_true")
-parser.add_argument("-w", "--walltime", default="02:00:00",
-                    help="wallTime of the reservation, eg : 8:30:00")
-parser.add_argument("-jid", "--job-id", type=int,
-                    help="use the reservation id of OpenStack")
-
-parser.add_argument("-omin", "--openstack-min-nodes", type=int,
-                    help="minimal number of openstack nodes to deploy")
-parser.add_argument("-onn", "--openstack-nodes-number", type=int, default=2,
-                    help="number of nodes in the reservation")
-
-parser.add_argument("-c", "--check-only", default=False, action="store_true",
-                    help="Check openstack installation (instead of install)")
-parser.add_argument("-f", "--openstack-campaign-folder",
-                    default="openstack-campaign",
-                    help=("Location of the openstack-campaign folder"
-                          " on the frontend"))
-## Handling arguments
-
-args = parser.parse_args()
-
-logger.debug(args)
-
-site = args.site
-cluster = args.cluster
-switch = args.switch
-walltime = args.walltime
-
-if not args.job_id is None:
-    os_job_id = args.job_id
-    frontend = site
-    os_hosts = get_oar_job_nodes(os_job_id, frontend)
-    vlan = get_oar_job_kavlan(os_job_id, frontend)
-
-if args.openstack_min_nodes is None:
-    openstack_min_nodes = args.openstack_nodes_number
-else:
-    openstack_min_nodes = args.openstack_min_nodes
-
-## Warnings: conflicting parameters
-
-if args.check_only and args.kadeploy:
-    logger.warning("Option kadeploy and check are both true.")
-
-total_nb_nodes = args.openstack_nodes_number
-
-################ Reservations ###################
-##
-## 1 - Reserving Openstack nodes
-## 2 - Enabling KaVLAN DHCP
-
-user_connexion_params = {
-    'user': 'root',
-    'default_frontend': site,
-    'ssh_options': ('-tt',
-                    '-o', 'BatchMode=yes',
-                    '-o', 'PasswordAuthentication=no',
-                    '-o', 'StrictHostKeyChecking=no',
-                    '-o', 'UserKnownHostsFile=/dev/null',
-                    '-o', 'ConnectTimeout=45')}
-
-## Reserving Openstack Nodes
-if args.reservation:
-    logger.info("Reservation for %i nodes, on site/cluster/switch %s/%s/%s"
-                " with a walltime of %s" %
-                (total_nb_nodes, site, cluster, switch, walltime))
-
-    # Soumission
-    logger.info('Performing submission')
-
-    submission = OarSubmission(
-        walltime=walltime,
-        job_type=["deploy", "destructive"],
-        project="openstack_execo",
-        name="openstack_%s" % cluster)
-    if switch == '*':
-        submission.resources = ("{'type=\"kavlan\"'}/vlan=1+"
-                                "{'cluster=\"%s\"'}/nodes=%i" %
-                                (cluster, total_nb_nodes))
+    if openstack_well_installed:
+        return list(os_controllers)
     else:
-        submission.resources = ("{'type=\"kavlan\"'}/vlan=1+"
-                                "{'cluster=\"%s\" and switch=\"%s\"'}"
-                                "/nodes=%i" %
-                                (cluster, switch, total_nb_nodes))
-
-    jobs = oarsub([(submission, site)])
-    (os_job_id, frontend) = (jobs[0][0], jobs[0][1])
-    logger.info("OAR job id is %i", os_job_id)
-
-    wait_oar_job_start(os_job_id, frontend)
-
-## Enabling KaVLAN DHCP
-if args.kadeploy:
-    logger.info('Enabling DHCP server for the KaVLAN')
-    cmd = 'kavlan -e -j %i' % os_job_id
-    Remote(cmd, [frontend+'.grid5000.fr']).run()
-
-################ Deployment ###################
-
-if args.kadeploy:
-    num_deployment_tries = 2
-    checkDeployedCommand = None
-    deploy_log = 'Performing'
-else:
-    num_deployment_tries = 0
-    checkDeployedCommand = True
-    deploy_log = 'Checking'
-
-logger.info(deploy_log + ' OpenStack Deployment')
-
-os_hosts = get_oar_job_nodes(os_job_id, frontend)
-logger.info('hosts: %s', pformat(os_hosts))
-vlan = get_oar_job_kavlan(os_job_id, frontend)
-logger.info('vlan: %s', vlan)
-
-deployment = Deployment(hosts=os_hosts, env_name="ubuntu-x64-1204-parted",
-                        vlan=vlan,
-                        other_options=("--set-custom-operations"
-                                       " customparted.yml"))
-
-deployed_hosts = deploy(deployment, num_tries=num_deployment_tries,
-                        check_deployed_command=checkDeployedCommand)
-
-if len(deployed_hosts[0]) < openstack_min_nodes:
-    logger.error('Only %d openstack hosts were correctly deployed (min = %d)',
-                 len(deployed_hosts[0]), openstack_min_nodes)
-    logger.error('%d Hosts %s were not correctly deployed',
-                 len(deployed_hosts[1]), pformat(deployed_hosts[1]))
-    exit()
-elif len(deployed_hosts[1]) > 0:
-    logger.warning('Some Hosts %s were not correctly deployed',
-                   pformat(deployed_hosts[1]))
-os_hosts = map(lambda h: Host(h.address.replace("."+site+".grid5000.fr",
-               "-kavlan-"+str(vlan)+"."+site+".grid5000.fr")),
-               deployed_hosts[0])
+        raise OpenstackInstallationError(failed_nodes)
 
 
-################ Installing Openstack ###################
+def check_deploy(deployed_hosts, nb_min_nodes):
+    """ Check deployment result given by deploy().
 
-if not args.check_only:
-    logger.info('Install openstack')
+    Returns True if at least ``nb_min_nodes`` are deployed, False otherwise
+    """
+    if len(deployed_hosts[0]) < nb_min_nodes:
+        return False
+    elif len(deployed_hosts[1]) > 0:
+        logger.warning('Some Hosts %s were not correctly deployed',
+                       pformat(deployed_hosts[1]))
+    return True
 
-    # Install openstack
-    logger.info('Installing openstack')
-    os_hosts_str = ''
-    Remote("rm -f nodes.txt", [frontend+'.grid5000.fr'],
-           connexion_params=default_frontend_connexion_params).run()
-    for h in os_hosts:
-        Remote("echo %s >> nodes.txt" % h.address, [frontend+'.grid5000.fr'],
-               connexion_params=default_frontend_connexion_params).run()
 
-    cmd = ("ruby %s/bin/openstackg5k -m educ -i ~/nodes.txt"
-           " -k ~/.ssh/id_rsa.pub" % args.openstack_campaign_folder)
+def install_openstack(site, os_hosts, openstack_campaign_folder):
+    """ Install Openstack from ``site`` on nodes ``os_hosts``
+
+    It uses the script from the openstack campaign script folder
+    """
+    # Fill File containing nodes addresses
+    identifier = str(uuid.uuid4())
+    nodes_file = "nodes_%s.txt" % (identifier)
+    Remote("rm -f %s" % nodes_file, [site+'.grid5000.fr'],
+           connection_params=default_frontend_connection_params).run()
+    logger.info("Generating nodes file %s" % nodes_file)
+    for host in os_hosts:
+        Remote("echo %s >> %s" % (host.address, nodes_file),
+               [site+'.grid5000.fr'],
+               connection_params=default_frontend_connection_params).run()
+
+    # Copy openstack-campaign because impossible to do it in parallel otherwise
+    tmp_os_campaign_folder = (openstack_campaign_folder + identifier)
+
+    cmd = ("cp -R %s %s" % (openstack_campaign_folder, tmp_os_campaign_folder))
+    Remote(cmd, [site+'.grid5000.fr'],
+           connection_params=default_frontend_connection_params).run()
+    # Launch openstack script
+    cmd = ("ruby %s/bin/openstackg5k -m educ -i ~/%s"
+           " -k ~/.ssh/id_rsa.pub" %
+           (tmp_os_campaign_folder, nodes_file))
     logger.info(cmd)
     install_openstack_p = Remote(
-        cmd, [frontend+'.grid5000.fr'],
-        connexion_params=default_frontend_connexion_params)
+        cmd, [site+'.grid5000.fr'],
+        connection_params=default_frontend_connection_params)
     install_openstack_p.lifecycle_handlers.append(
         NotifyAtEnd("Openstack installation done."))
     install_openstack_p.run()
 
-################ Checking Openstack ###################
+    # Delete nodes file
+    Remote("rm -rf %s %s" % (nodes_file, tmp_os_campaign_folder),
+           [site+'.grid5000.fr'],
+           connection_params=default_frontend_connection_params).run()
 
-logger.info("Checking Openstack installation")
-get_hostname = Remote('if [ -f /etc/nova/nova.conf ];'
-                      'then grep "rabbit_host=" /etc/nova/nova.conf'
-                      ' | cut -d"=" -f2; else false;fi',
-                      os_hosts,
-                      connexion_params=user_connexion_params).run()
-openstack_controller_fqdn = "UNKNOWN"
-openstack_well_installed = True
-for p in get_hostname.processes():
-    if not p.finished_ok():
-        logger.error("Nova doesn't seem well installed on %s!",
-                     pformat(p._host))
-        openstack_well_installed = False
+
+def deploy_nodes(kadeploy, site, job_id, nb_min_nodes=None):
+    """ Deploy nodes on ``site`` according to job id.
+
+    Raise an error if less than ``nb_min_nodes`` are correctly deployed
+
+    @param kadeploy : if yes deploy, if no check
+    Return the list of deployed hosts
+    """
+    if kadeploy:
+        num_deployment_tries = 2
+        checkDeployedCommand = None
+        deploy_log = 'Performing'
     else:
-        openstack_controller_fqdn = p.stdout().rstrip()
+        num_deployment_tries = 0
+        checkDeployedCommand = True
+        deploy_log = 'Checking'
 
-if openstack_well_installed:
-    logger.info("Openstack is properly installed. Controller node is %s",
-                openstack_controller_fqdn)
+    logger.info(deploy_log + ' OpenStack Deployment')
+
+    os_hosts = get_oar_job_nodes(job_id, site)
+    logger.info('hosts: %s', pformat(os_hosts))
+    if nb_min_nodes is None:
+        nb_min_nodes = os_hosts.length
+    vlan = get_oar_job_kavlan(job_id, site)
+    logger.info('vlan: %s', vlan)
+
+    deployment = Deployment(hosts=os_hosts, env_name="ubuntu-x64-1204-parted",
+                            vlan=vlan,
+                            other_options=("--custom-steps"
+                                           " customparted.yml"))
+
+    deployed_hosts = deploy(deployment, num_tries=num_deployment_tries,
+                            check_deployed_command=checkDeployedCommand)
+
+    if not check_deploy(deployed_hosts, nb_min_nodes):
+        raise KadeployError(deployed_hosts[1])
+
+    os_hosts = [Host(h.replace("."+site+".grid5000.fr",
+                               "-kavlan-"+str(vlan)+"."+site+".grid5000.fr"))
+                for h in deployed_hosts[0]]
+    return sorted(os_hosts, key=lambda h: h.address)
+
+
+def main():
+    """ Install openstack """
+
+    logger.setLevel('INFO')
+
+    ####################### Parameters #################
+    ##
+    ## 1 - Configuring the parser
+    ## 2 - Handling undefined arguments
+
+    ## Configuring the parser
+    parser = argparse.ArgumentParser(description="Install openstack on G5K",
+                                     fromfile_prefix_chars='@')
+    parser.add_argument("site",
+                        help="site on which experiments are carried out")
+    parser.add_argument("cluster",
+                        help="cluster on which experiments are carried out")
+    parser.add_argument("switch", default="*", nargs='?',
+                        help="switch on which nodes are connected")
+
+    parser.add_argument("-r", "--reservation", default=False,
+                        help="make a reservation", action="store_true")
+    parser.add_argument("-kad", "--kadeploy", default=False,
+                        help="make a kadeployment", action="store_true")
+    parser.add_argument("-w", "--walltime", default="02:00:00",
+                        help="wallTime of the reservation, eg : 8:30:00")
+    parser.add_argument("-jid", "--job-id", type=int,
+                        help="use the reservation id of OpenStack")
+
+    parser.add_argument("-omin", "--openstack-min-nodes", type=int,
+                        help="minimal number of openstack nodes to deploy")
+    parser.add_argument("-onn", "--openstack-nodes-number", type=int,
+                        help="number of nodes per cloud in the reservation")
+    parser.add_argument("-cn", "--clouds-number", type=int, default=1,
+                        help="number of different openstack clouds")
+
+    parser.add_argument("-c", "--check-only", default=False,
+                        action="store_true",
+                        help="check openstack installation (no install)")
+    parser.add_argument("-f", "--openstack-campaign-folder",
+                        default="openstack-campaign",
+                        help=("Location of the openstack-campaign folder"
+                              " on the frontend"))
+    ## Handling arguments
+
+    args = parser.parse_args()
+
+    logger.debug(args)
+
+    site = args.site
+    cluster = args.cluster
+    switch = args.switch
+    walltime = args.walltime
+
+    if not args.job_id is None:
+        os_job_id = args.job_id
+
+    if args.openstack_min_nodes is None:
+        openstack_min_nodes = args.openstack_nodes_number
+    else:
+        openstack_min_nodes = args.openstack_min_nodes
+
+    ## Warnings: conflicting parameters
+
+    if args.check_only and args.kadeploy:
+        logger.warning("Option kadeploy and check are both true.")
+
+    total_nb_nodes = args.openstack_nodes_number * args.clouds_number
+
+    ################ Reservations ###################
+    ##
+    ## 1 - Reserving Openstack nodes
+    ## 2 - Enabling KaVLAN DHCP
+
+    user_connection_params = {
+        'user': 'root',
+        'default_frontend': site,
+        'ssh_options': ('-tt',
+                        '-o', 'BatchMode=yes',
+                        '-o', 'PasswordAuthentication=no',
+                        '-o', 'StrictHostKeyChecking=no',
+                        '-o', 'UserKnownHostsFile=/dev/null',
+                        '-o', 'ConnectTimeout=45')}
+
+    ## Reserving Openstack Nodes
+    if args.reservation:
+        logger.info("Reservation for %i nodes, on site/cluster/switch %s/%s/%s"
+                    " with a walltime of %s" %
+                    (total_nb_nodes, site, cluster, switch, walltime))
+
+        # Soumission
+        logger.info('Performing submission')
+
+        submission = OarSubmission(
+            walltime=walltime,
+            job_type=["deploy", "destructive"],
+            project="openstack_execo",
+            name="openstack_%s" % cluster)
+        if switch == '*':
+            submission.resources = ("{type='kavlan'}/vlan=1+"
+                                    "{cluster='%s'}/nodes=%i" %
+                                    (cluster, total_nb_nodes))
+        else:
+            submission.resources = ("{type='kavlan'}/vlan=1+"
+                                    "{cluster='%s' and switch='%s'}"
+                                    "/nodes=%i" %
+                                    (cluster, switch, total_nb_nodes))
+
+        jobs = oarsub([(submission, site)])
+        (os_job_id, site) = (jobs[0][0], jobs[0][1])
+        logger.info("OAR job id is %i", os_job_id)
+
+        wait_oar_job_start(os_job_id, site)
+
+    ## Enabling KaVLAN DHCP
+    if args.kadeploy:
+        logger.info('Enabling DHCP server for the KaVLAN')
+        cmd = 'kavlan -e -j %i' % os_job_id
+        Remote(cmd, [site+'.grid5000.fr']).run()
+
+    ################ Deployment ###################
+
+    try:
+        os_hosts = deploy_nodes(args.kadeploy, site, os_job_id,
+                                openstack_min_nodes)
+    except KadeployError as kerror:
+        logger.error(kerror.msg)
+        exit()
+
+    logger.info(pformat(os_hosts))
+    openstacks_nodes = []
+    for i in xrange(0, total_nb_nodes, args.openstack_nodes_number):
+        current_hosts = os_hosts[i:i+args.openstack_nodes_number]
+        openstacks_nodes.append(current_hosts)
+
+    logger.info(pformat(openstacks_nodes))
+    ################ Installing Openstack ###################
+    if not args.check_only:
+        threads = []
+        os_idx = 1
+        for current_hosts in openstacks_nodes:
+            logger.info(current_hosts)
+
+            logger.info('Install openstack %i' % os_idx)
+            p = Thread(target=install_openstack, args=(site, current_hosts,
+                       args.openstack_campaign_folder))
+            threads.append(p)
+            p.start()
+            time.sleep(10)
+            os_idx = os_idx + 1
+        for t in threads:
+            t.join()
+
+    ################ Checking Openstack ###################
+    for current_hosts in openstacks_nodes:
+        try:
+            controllers = get_controller_nodes(current_hosts,
+                                               user_connection_params)
+            logger.info("Openstack is installed. The controllers are %s",
+                        ', '.join(controllers))
+        except OpenstackInstallationError as ose:
+            logger.error(ose.msg)
+
+if __name__ == "__main__":
+    main()
