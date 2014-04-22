@@ -147,7 +147,7 @@ def configure_devstack():
                                     '"FLOATING_RANGE=10.36.66.0/26\n"'+
                                     '"MULTI_HOST=1\n"'+
                                     '"LOGFILE=/opt/stack/logs/stack.sh.log\n"'+
-                                    '"GIT_BASE=https://github.com"'+
+                                    '"GIT_BASE=https://github.com\n"'+
                                     '"ADMIN_PASSWORD=pass\n"'+
                                     '"MYSQL_PASSWORD=pass\n"'+
                                     '"RABBIT_PASSWORD=pass\n"'+
