@@ -25,13 +25,20 @@ env.add_argument('-a', '--env_file',
 parser.add_argument('-c', '--cluster',
                     dest='cluster',
                     default='petitprince',
-                    help='choose the cluster on which ')
+                    help='choose the cluster on which to run the deployment and upgrade')
 parser.add_argument('-w', '--walltime',
                     dest='walltime',
                     default='1:00:00',
-                    help='choose the cluster on which ')
+                    help='choose the walltime ')
+parser.add_argument('--dev',
+                    dest='dev',
+                    action='store_true',
+                    help='use an env registered with kadeploy-dev')
 
 args = parser.parse_args()
+
+if not args.env_name and not args.env_file:
+    parser.error('missing environnement, aborting')
 
 if args.env_name:
     logger.error('Not implemented')
@@ -74,7 +81,7 @@ if job[0][0]:
               "export DEBIAN_MASTER=noninteractive ; apt-get update ; " + \
               "apt-get dist-upgrade -y --force-yes -o Dpkg::Options::='--force-confdef' " + \
               "-o Dpkg::Options::='--force-confold' "
-            upgrade = SshProcess(cmd, host).run()
+            upgrade = SshProcess(cmd, host, {'user': 'root'}).run()
             logger.info('Saving environments with tgz-g5k')
             new_tar = path[0] + '_' + strftime("%Y%m%d") + '.tgz'
             dump_env = Process('ssh root@' + host + ' tgz-g5k > ' + new_tar)
@@ -93,7 +100,7 @@ if job[0][0]:
 
     finally:
         logger.info('Destroying job')
-        oardel(job)
+        #oardel(job)
 
 
 source = getfqdn().split('.')[1]
@@ -109,3 +116,4 @@ for dest in dests:
 logger.info('Launching parallel copy from %s to %s', source, ','.join(dests))
 ParallelActions(sync_actions).run()
 
+logger.info('Environnement synced !')
