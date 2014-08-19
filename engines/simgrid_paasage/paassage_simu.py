@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# encoding=utf8
 
 import os, time, datetime
 
@@ -13,7 +14,16 @@ from execo_g5k import get_host_attributes, get_planning, compute_slots, \
     
 from execo_engine import Engine, logger, ParamSweeper, sweep, slugify
 
+#import xml_gen_execo as XML
+
 class paassage_simu(Engine):
+    
+    JVM='java'
+    SGCBJAR='SGCB_nTier.jar' 
+    PJDUMP='pj_dump'
+    RSCRIPT='Rscript'
+
+
 
     def __init__(self):
         """Overloading class initialization with parent and adding options"""
@@ -24,107 +34,29 @@ class paassage_simu(Engine):
         self.options_parser.add_option("-n", dest="n_nodes",
                     help="maximum number of nodes used",
                     type="int",
-                    default=200)
+                    default=2)
         self.options_parser.add_option("-w", dest="walltime",
                     help="walltime for the reservation",
                     type="string",
-                    default="3:00:00")
+                    default="00:10:00")
         self.options_parser.add_option("-j", dest="oargrid_job_id",
                     help="oargrid_job_id to relaunch an engine",
                     type=int)
         self.options_parser.add_option("-k", dest="keep_alive",
                     help="keep reservation alive ..",
                     action="store_true")
-        
-    def run(self):
-        """ """
-        if self.options.oargrid_job_id:
-            self.oargrid_job_id = self.options.oargrid_job_id
-        else:
-            self.oargrid_job_id = None
-        
-        try:
-            # Creation of the main iterator which is used for the first control loop.
-            self.define_parameters()
-        
-            job_is_dead = False
-            # While they are combinations to treat
-            while len(self.sweeper.get_remaining()) > 0:
-                # If no job, we make a reservation and prepare the hosts for the experiments
-                if self.oargrid_job_id is None:
-                    self.make_reservation()
-                # Wait that the job starts
-                wait_oargrid_job_start(self.oargrid_job_id)
-                # Retrieving the hosts and subnets parameters
-                self.hosts = get_oargrid_job_nodes(self.oargrid_job_id)
-                # Hosts deployment and configuration
-                deployment = Deployment(hosts = self.hosts, 
-                                        env_file='/home/sirimie/envs/mywheezy-x64-base.env')
-                self.hosts, _ = deploy(deployment)
-                
-                if len(self.hosts) == 0:
-                    break
+               
+    def replaceWord(src, dst, word1, word2):
+	inFile=open(src, "r");
+        outFile=open(dst, "w");
+	for line in inFile.readlines(): 
+	    newLine=line.replace(word1,word2)
+	    outFile.write(newLine); 
 
-                # Initializing the resources and threads
-                available_hosts = [host for host in self.hosts 
-                    for i in range(get_host_attributes(host)['architecture']['smt_size'])]
-                        
-                threads = {}
-                # Checking that the job is running and not in Error
-                while self.is_job_alive(self.oargrid_job_id) or len(threads.keys()) > 0:
-                    job_is_dead = False
-                    while self.options.n_nodes > len(available_hosts):
-                        tmp_threads = dict(threads)
-                        for t in tmp_threads:
-                            if not t.is_alive():
-                                available_hosts.append(tmp_threads[t]['host'])
-                                del threads[t]
-                        sleep(5)
-                        if not self.is_job_alive(self.oargrid_job_id):
-                            job_is_dead = True
-                            break
-                    if job_is_dead:
-                        break
-
-                    # Getting the next combination
-                    comb = self.sweeper.get_next()
-                    if not comb:
-                        while len(threads.keys()) > 0:
-                            tmp_threads = dict(threads)
-                            for t in tmp_threads:
-                                if not t.is_alive():
-                                    del threads[t]
-                            logger.info('Waiting for threads to complete')
-                            sleep(20)
-                        break
-                    
-                    host = available_hosts[0]
-                    available_hosts = available_hosts[1:]
-
-                    t = Thread(target=self.workflow,
-                               args=(comb, host))
-                    threads[t] = {'host': host}
-                    t.daemon = True
-                    t.start()
-
-                if not self.is_job_alive(self.oargrid_job_id):
-                    job_is_dead = True
-
-                if job_is_dead:
-                    self.oargrid_job_id = None
-            
-                
-        finally:
-            if self.oargrid_job_id is not None:
-                if not self.options.keep_alive:
-                    logger.info('Deleting job')
-                    oargriddel(self.oargrid_job_id)
-                else:
-                    logger.info('Keeping job alive for debugging')
-        
- 
     def define_parameters(self):
         """ """
+	#parameters= XML.getParamters("conf.xml")
+
         parameters = {
             'http_c1.xlarge': range(1),
             'http_m1.large': range(1, 4),
@@ -141,7 +73,7 @@ class paassage_simu(Engine):
         """ """
         logger.info('Performing reservation')
         starttime = int(time.time() + timedelta_to_seconds(datetime.timedelta(minutes=1)))
-        planning = get_planning(elements=['grid5000'],
+        planning = get_planning(elements=['lyon'],
                                 starttime=starttime)
         slots = compute_slots(planning, self.options.walltime)
         wanted = { "grid5000": 0 }
@@ -154,20 +86,57 @@ class paassage_simu(Engine):
         self.oargrid_job_id , _= oargridsub(job_specs, start_date,
                           walltime = end_date - start_date,
                           job_type = "deploy")
+        logger.info("Reservation done")
 
 
     def workflow(self, comb, host):
         """ """
+	logger.info("In workflow")
         comb_ok = False
         thread_name = style.Thread(host.split('.')[0]) + ': '
         logger.info(thread_name + 'Starting combination ' + slugify(comb) )
     
         try:
             # Create the XML file
-            
+            Put([host], ["xml_gen_execo.py", "conf.xml"], remote_location="/home/sirimie/Documents/sgcbntier/paasage_demo/").run()
+
+	    tree = ET.parse("conf.xml")
+	    rootSrc = tree.getroot()
+	    lis=[]
+           
+	    logger.info("In workflow")
+	    for _, value in comb.iteritems():
+	    	lis.append(str(value))
+	    	logger.info("%s" % (value) )
+	
+	    XML.generateExp(lis, rootSrc)
+
+	    
             # Run the code
-            
+
+
+	    logger.info("Processing %s" % name)
+
+	    traceFile="ntier_"+name
+            confFile="sgcb_ntier_"+name+".conf"
+	    xmlConfFile="test.xml"
+
+
+	    shutil.copyfile("sgcb_ntier.conf", confFile+".tmp")
+
+	    replaceWord(confFile+".tmp", confFile,"TRACE_FILE",traceFile);
+	    replaceWord(confFile, confFile+".tmp","XML_FILE",xmlConfFile);
+
+            shutil.move(confFile+".tmp", confFile)
+
+	    Remote(JAVA+" -jar "+SGCBJAR+" 100 "+confFile+" > log/"+traceFile+".log", [host]).run()
+	    Remote(PJDUMP+" "+traceFile+".trace | grep REQTASK > csv/REQTASK_"+traceFile+".csv", [host]).run()
+
+
             # Get the results
+	    
+            Remote("rsync -avzP /home/sirimie/Documents/sgcbntier/paasage_demo/csv/REQTASK_"+traceFile+".csv   sirimie@access.lyon.grid5000.fr:/home/sirimie/restuls/",[host]).run()
+
             comb_dir = self.result_dir + '/' + slugify(comb) + '/'
             try:
                 os.mkdir(comb_dir)
@@ -197,7 +166,96 @@ class paassage_simu(Engine):
                             ' has been canceled')
         logger.info(style.step('%s Remaining'),
                         len(self.sweeper.get_remaining()))
-    
+
+
+    def run(self):
+        """ """
+        if self.options.oargrid_job_id:
+            self.oargrid_job_id = self.options.oargrid_job_id
+        else:
+            self.oargrid_job_id = None
+        
+        try:
+            # Creation of the main iterator which is used for the first control loop.
+            self.define_parameters()
+        
+            job_is_dead = False
+            # While they are combinations to treat
+            while len(self.sweeper.get_remaining()) > 0:
+                # If no job, we make a reservation and prepare the hosts for the experiments
+                if self.oargrid_job_id is None:
+                    self.make_reservation()
+                # Wait that the job starts
+                wait_oargrid_job_start(self.oargrid_job_id)
+                # Retrieving the hosts and subnets parameters
+                self.hosts = get_oargrid_job_nodes(self.oargrid_job_id)
+                # Hosts deployment and configuration
+                deployment = Deployment(hosts = self.hosts, 
+                                        env_file='/home/sirimie/env/mywheezy-x64-base.env')
+		logger.info("Start deployment")
+                self.hosts, _ = deploy(deployment)
+		logger.info("Finish deployment")
+                
+                if len(self.hosts) == 0:
+                    break
+
+                # Initializing the resources and threads
+                available_hosts = [host for host in self.hosts 
+                    for i in range(get_host_attributes(host)['architecture']['smt_size'])]
+                        
+                threads = {}
+                # Checking that the job is running and not in Error
+                while self.is_job_alive() or len(threads.keys()) > 0:
+                    job_is_dead = False
+                    while self.options.n_nodes > len(available_hosts):
+                        tmp_threads = dict(threads)
+                        for t in tmp_threads:
+                            if not t.is_alive():
+                                available_hosts.append(tmp_threads[t]['host'])
+                                del threads[t]
+                        sleep(5)
+                        if not self.is_job_alive():
+                            job_is_dead = True
+                            break
+                    if job_is_dead:
+                        break
+
+                    # Getting the next combination
+                    comb = self.sweeper.get_next()
+                    if not comb:
+                        while len(threads.keys()) > 0:
+                            tmp_threads = dict(threads)
+                            for t in tmp_threads:
+                                if not t.is_alive():
+                                    del threads[t]
+                            logger.info('Waiting for threads to complete')
+                            sleep(20)
+                        break
+                    
+                    host = available_hosts[0]
+                    available_hosts = available_hosts[1:]
+
+                    t = Thread(target=self.workflow,
+                               args=(comb, host))
+                    threads[t] = {'host': host}
+                    t.daemon = True
+                    t.start()
+
+                if not self.is_job_alive():
+                    job_is_dead = True
+
+                if job_is_dead:
+                    self.oargrid_job_id = None
+            
+                
+        finally:
+            if self.oargrid_job_id is not None:
+                if not self.options.keep_alive:
+                    logger.info('Deleting job')
+                    oargriddel([self.oargrid_job_id])
+                else:
+                    logger.info('Keeping job alive for debugging')
+
 
 if __name__ == "__main__":
     engine = paassage_simu()
