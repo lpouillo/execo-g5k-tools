@@ -1,0 +1,25 @@
+<?xml version='1.0'?>
+<!DOCTYPE nTierApplication>
+ <services>
+    <webService>
+      <region name="eu_1">
+	<instance type="c1.xlarge" quantity="0-1"/>
+	<instance type="m1.large" quantity="1-3"/>
+      </region>
+    </webService>
+
+    <appsService>
+      <region name="eu_1">
+	<instance type="c1.medium" quantity="1-6"/>
+      </region>
+    </appsService>
+
+    <dbService>
+      <region name="eu_1">
+	<instance type="m2.xlarge" quantity="0"/>
+      </region>
+      <region name="eu_1">
+	<instance type="m1.medium" quantity="1"/>
+      </region>	
+    </dbService>
+ </services>  

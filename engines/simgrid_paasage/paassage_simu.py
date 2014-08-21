@@ -10,11 +10,11 @@ from execo.time_utils import timedelta_to_seconds
 from execo_g5k import get_host_attributes, get_planning, compute_slots, \
     find_first_slot, distribute_hosts, get_jobs_specs, \
     wait_oargrid_job_start, oargridsub, oargriddel, get_oargrid_job_nodes, \
-    Deployment, deploy
+    Deployment, deploy, get_oargrid_job_info
     
 from execo_engine import Engine, logger, ParamSweeper, sweep, slugify
 
-#import xml_gen_execo as XML
+
 
 class paassage_simu(Engine):
     
@@ -22,7 +22,6 @@ class paassage_simu(Engine):
     SGCBJAR='SGCB_nTier.jar' 
     PJDUMP='pj_dump'
     RSCRIPT='Rscript'
-
 
 
     def __init__(self):
@@ -45,17 +44,11 @@ class paassage_simu(Engine):
         self.options_parser.add_option("-k", dest="keep_alive",
                     help="keep reservation alive ..",
                     action="store_true")
-               
-    def replaceWord(src, dst, word1, word2):
-	inFile=open(src, "r");
-        outFile=open(dst, "w");
-	for line in inFile.readlines(): 
-	    newLine=line.replace(word1,word2)
-	    outFile.write(newLine); 
+              
 
     def define_parameters(self):
         """ """
-	#parameters= XML.getParamters("conf.xml")
+	#parameters= self.get_paramters("conf.xml")
 
         parameters = {
             'http_c1.xlarge': range(1),
@@ -89,6 +82,25 @@ class paassage_simu(Engine):
         logger.info("Reservation done")
 
 
+
+
+    def get_parameters(self, file_name):
+       
+	tree = ET.parse(file_name)
+	rootSrc = tree.getroot()
+	param= dict()
+
+	for inst in rootSrc.iter("instance"):
+		ty=inst.get("type")
+		qt=inst.get("quantity")	
+		
+		param[ty]=qt
+	
+	return param
+
+
+
+
     def workflow(self, comb, host):
         """ """
 	logger.info("In workflow")
@@ -97,45 +109,29 @@ class paassage_simu(Engine):
         logger.info(thread_name + 'Starting combination ' + slugify(comb) )
     
         try:
-            # Create the XML file
-            Put([host], ["xml_gen_execo.py", "conf.xml"], remote_location="/home/sirimie/Documents/sgcbntier/paasage_demo/").run()
+	    Remote("python /home/sirimie/Documents/sgcbntier/paasage_demo/run_all_execo.py %s", [host]).run()
+            # Create the XML file          
 
-	    tree = ET.parse("conf.xml")
-	    rootSrc = tree.getroot()
-	    lis=[]
-           
-	    logger.info("In workflow")
+	    params = []
+          
 	    for _, value in comb.iteritems():
-	    	lis.append(str(value))
-	    	logger.info("%s" % (value) )
-	
-	    XML.generateExp(lis, rootSrc)
+	    	params.append(str(value))
+	    	
+	    param_str = '_'.join(params)
+
+	    Remote("python /home/sirimie/Documents/sgcbntier/paasage_demo/xml_gen_execo.py -cb %s" % param_str, [host]).run()
 
 	    
             # Run the code
 
-
-	    logger.info("Processing %s" % name)
-
-	    traceFile="ntier_"+name
-            confFile="sgcb_ntier_"+name+".conf"
-	    xmlConfFile="test.xml"
-
-
-	    shutil.copyfile("sgcb_ntier.conf", confFile+".tmp")
-
-	    replaceWord(confFile+".tmp", confFile,"TRACE_FILE",traceFile);
-	    replaceWord(confFile, confFile+".tmp","XML_FILE",xmlConfFile);
-
-            shutil.move(confFile+".tmp", confFile)
-
-	    Remote(JAVA+" -jar "+SGCBJAR+" 100 "+confFile+" > log/"+traceFile+".log", [host]).run()
-	    Remote(PJDUMP+" "+traceFile+".trace | grep REQTASK > csv/REQTASK_"+traceFile+".csv", [host]).run()
+	    logger.info("Processing %s" % param_str)
+	    Remote("rm -f /home/sirimie/Documents/sgcbntier/paasage_demo/csv/REQTASK_*", [host]).run() 
+	    Remote("python /home/sirimie/Documents/sgcbntier/paasage_demo/run_all_execo.py %s", [host]).run()
 
 
             # Get the results
 	    
-            Remote("rsync -avzP /home/sirimie/Documents/sgcbntier/paasage_demo/csv/REQTASK_"+traceFile+".csv   sirimie@access.lyon.grid5000.fr:/home/sirimie/restuls/",[host]).run()
+            #Remote("rsync -avzP /home/sirimie/Documents/sgcbntier/paasage_demo/csv/REQTASK_"+traceFile+".csv   sirimie@access.lyon.grid5000.fr:/home/sirimie/restuls/",[host]).run()
 
             comb_dir = self.result_dir + '/' + slugify(comb) + '/'
             try:
@@ -145,8 +141,9 @@ class paassage_simu(Engine):
                     '%s already exists, removing existing files', comb_dir)
                 for f in os.listdir(comb_dir):
                     os.remove(comb_dir + f)
-                    
-            get_results = Get([host], ['file1', 'file2']).run() 
+             
+            get_results = Get([host], ["/home/sirimie/Documents/sgcbntier/paasage_demo/csv/REQTASK_*"]).run() 
+
             for p in get_results.processes:
                 if not p.ok:
                     logger.error(host +
@@ -167,6 +164,12 @@ class paassage_simu(Engine):
         logger.info(style.step('%s Remaining'),
                         len(self.sweeper.get_remaining()))
 
+    def is_job_alive(self):
+	rez=get_oargrid_job_info(self.oargrid_job_id)
+	if (rez["start_date"]+rez["walltime"] > time.time()):
+		return True
+	else:
+		return False
 
     def run(self):
         """ """
@@ -194,6 +197,7 @@ class paassage_simu(Engine):
                                         env_file='/home/sirimie/env/mywheezy-x64-base.env')
 		logger.info("Start deployment")
                 self.hosts, _ = deploy(deployment)
+		Put(self.hosts, ["run_all_execo.py","xml_gen_execo.py", "conf.xml"], remote_location="/home/sirimie/Documents/sgcbntier/paasage_demo/").run()
 		logger.info("Finish deployment")
                 
                 if len(self.hosts) == 0:
