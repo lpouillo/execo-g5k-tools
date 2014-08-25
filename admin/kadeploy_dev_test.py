@@ -20,7 +20,7 @@ class kadeploy_dev_test(Engine):
             "env": ['wheezy-x64-base', 'wheezy-x64-prod', 'wheezy-x64-xen',]
             }
         logger.info('Defining parameters: %s', pformat(params))
-        exit()
+
         combs = sweep(params)
         return ParamSweeper(self.result_dir + "/sweeper", combs)
 
@@ -29,9 +29,8 @@ class kadeploy_dev_test(Engine):
 
         while len(sweeper.get_remaining()) > 0:
             comb = sweeper.get_next()
-            print comb
-            exit()
-#            site = comb['site'] + '.grid5000.fr'
+
+            site = comb['site'] + '.grid5000.fr'
             g5k_configuration['kadeploy3'] = comb['version']
             logger.info('Treating combination %s', pformat(comb))
             resources = ""
