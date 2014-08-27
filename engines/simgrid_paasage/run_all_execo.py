@@ -10,6 +10,7 @@ import MySQLdb
 import re
 import itertools
 import xml_gen as XML
+import random
 
 from optparse import OptionParser
 from subprocess import Popen, PIPE
@@ -33,13 +34,6 @@ vm_map_to_service={'0'     :'lb_http',
 	           '8'     :'db'
 	          }
 
-db = MySQLdb.connect(host="localhost", 
-		     user="root", 
-		     passwd="sergiu1806", 
-		     db="testAws", 
-		     unix_socket="/opt/lampp/var/mysql/mysql.sock"
-		    ) 
-cur = db.cursor() 
 
 
 def getArgs(string):
@@ -104,6 +98,7 @@ if __name__ == "__main__":
 	parser = OptionParser(usage=usage)
 
 	parser.add_option("-f", dest="confFile", help="experiments' configuration file name", default="conf.xml")
+	parser.add_option("--cb", dest="comb", help="current combination")
 
 	(options, args) = parser.parse_args()
 
@@ -111,38 +106,38 @@ if __name__ == "__main__":
 		parser.error("You must provide the configuration file name of the experiments !")
 
 
-	CONF=getArgs(options.confFile)
+	CONF=options.confFile
+	name=options.comb
 
 	if  not os.path.exists("log") :   
-		os.mkdir("log",755);
+		os.mkdir("/home/Work/sgcbntier/paasage_demo/log",755);
 	if  not os.path.exists("csv") :
-		os.mkdir("csv",755);
+		os.mkdir("/home/Work/sgcbntier/paasage_demo/csv",755);
 	
-
+	
+	
 	traceFile="ntier_"+name
 	confFile="sgcb_ntier_"+name+".conf"
 	xmlConfFile="test.xml"
 
 
-	shutil.copyfile("sgcb_ntier.conf", confFile+".tmp")
+	shutil.copyfile("/home/Work/sgcbntier/paasage_demo/sgcb_ntier.conf", "/home/Work/sgcbntier/paasage_demo/"+confFile+".tmp")
 
-	replaceWord(confFile+".tmp", confFile,"TRACE_FILE",traceFile);
-	replaceWord(confFile, confFile+".tmp","XML_FILE",xmlConfFile);
+	replaceWord("/home/Work/sgcbntier/paasage_demo/"+confFile+".tmp", "/home/Work/sgcbntier/paasage_demo/"+confFile,"TRACE_FILE",traceFile);
+	replaceWord("/home/Work/sgcbntier/paasage_demo/"+confFile, "/home/Work/sgcbntier/paasage_demo/"+confFile+".tmp","XML_FILE",xmlConfFile);
 
-	shutil.move(confFile+".tmp", confFile)
+	shutil.move("/home/Work/sgcbntier/paasage_demo/"+confFile+".tmp", "/home/Work/sgcbntier/paasage_demo/"+confFile)
 
 		     
-	os.system(JVM+" -jar "+SGCBJAR+" 100 "+confFile+" > log/"+traceFile+".log")
-	os.system(PJDUMP+" "+traceFile+".trace | grep REQTASK > csv/REQTASK_"+traceFile+".csv") 
+	os.system(JVM+" -jar /home/Work/sgcbntier/paasage_demo/"+SGCBJAR+" 100 /home/Work/sgcbntier/paasage_demo/"+confFile+" >  /home/Work/sgcbntier/paasage_demo/log/"+traceFile+".log")
+	os.system(PJDUMP+" /home/Work/sgcbntier/paasage_demo/"+traceFile+".trace | grep REQTASK > /home/Work/sgcbntier/paasage_demo/csv/REQTASK_"+traceFile+".csv") 
 
-	os.remove(traceFile+".trace")
-	os.remove(confFile)
-	os.remove(xmlConfFile)
-	os.remove(traceFile+".plist")
+	os.remove("/home/Work/sgcbntier/paasage_demo/"+traceFile+".trace")
+	os.remove("/home/Work/sgcbntier/paasage_demo/"+confFile)
+	os.remove("/home/Work/sgcbntier/paasage_demo/"+xmlConfFile)
+	os.remove("/home/Work/sgcbntier/paasage_demo/"+traceFile+".plist")
 	    
 
-cur.close()
-db.close()
                	
 
 

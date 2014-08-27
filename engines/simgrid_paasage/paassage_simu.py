@@ -2,15 +2,16 @@
 # encoding=utf8
 
 import os, time, datetime
+import xml.etree.cElementTree as ET
 
 from threading import Thread
-from execo import Put, Remote, Get, sleep
+from execo import Put, Remote, Get, sleep, default_connection_params
 from execo.log import style
 from execo.time_utils import timedelta_to_seconds
 from execo_g5k import get_host_attributes, get_planning, compute_slots, \
     find_first_slot, distribute_hosts, get_jobs_specs, \
     wait_oargrid_job_start, oargridsub, oargriddel, get_oargrid_job_nodes, \
-    Deployment, deploy, get_oargrid_job_info
+    Deployment, deploy, get_oargrid_job_info, get_host_cluster, get_cluster_site, get_host_site, get_g5k_sites
     
 from execo_engine import Engine, logger, ParamSweeper, sweep, slugify
 
@@ -23,7 +24,6 @@ class paassage_simu(Engine):
     PJDUMP='pj_dump'
     RSCRIPT='Rscript'
 
-
     def __init__(self):
         """Overloading class initialization with parent and adding options"""
         super(paassage_simu, self).__init__()
@@ -33,144 +33,18 @@ class paassage_simu(Engine):
         self.options_parser.add_option("-n", dest="n_nodes",
                     help="maximum number of nodes used",
                     type="int",
-                    default=2)
+                    default=10)
         self.options_parser.add_option("-w", dest="walltime",
                     help="walltime for the reservation",
                     type="string",
-                    default="00:10:00")
+                    default="03:00:00")
         self.options_parser.add_option("-j", dest="oargrid_job_id",
                     help="oargrid_job_id to relaunch an engine",
                     type=int)
         self.options_parser.add_option("-k", dest="keep_alive",
                     help="keep reservation alive ..",
                     action="store_true")
-              
-
-    def define_parameters(self):
-        """ """
-	#parameters= self.get_paramters("conf.xml")
-
-        parameters = {
-            'http_c1.xlarge': range(1),
-            'http_m1.large': range(1, 4),
-            'app_c1.medium': range(1, 6),
-            'db_m2.xlarge': range(0, 3),
-            'db_m1.medium': range(0, 3)}
-        
-        sweeps = sweep(parameters)
-        self.sweeper = ParamSweeper(os.path.join(self.result_dir, "sweeps"), sweeps)        
-        logger.info('Number of parameters combinations %s', len(self.sweeper.get_remaining()))
-        
-
-    def make_reservation(self):
-        """ """
-        logger.info('Performing reservation')
-        starttime = int(time.time() + timedelta_to_seconds(datetime.timedelta(minutes=1)))
-        planning = get_planning(elements=['lyon'],
-                                starttime=starttime)
-        slots = compute_slots(planning, self.options.walltime)
-        wanted = { "grid5000": 0 }
-        start_date, end_date, resources = find_first_slot(slots, wanted)
-        wanted['grid5000'] = min(resources['grid5000'], self.options.n_nodes)
-        
-        actual_resources = distribute_hosts(resources, wanted, ratio = 0.8)
-        job_specs = get_jobs_specs(actual_resources, name='Paasage_Simu') 
-        logger.info("try to reserve " + str(actual_resources))
-        self.oargrid_job_id , _= oargridsub(job_specs, start_date,
-                          walltime = end_date - start_date,
-                          job_type = "deploy")
-        logger.info("Reservation done")
-
-
-
-
-    def get_parameters(self, file_name):
-       
-	tree = ET.parse(file_name)
-	rootSrc = tree.getroot()
-	param= dict()
-
-	for inst in rootSrc.iter("instance"):
-		ty=inst.get("type")
-		qt=inst.get("quantity")	
-		
-		param[ty]=qt
-	
-	return param
-
-
-
-
-    def workflow(self, comb, host):
-        """ """
-	logger.info("In workflow")
-        comb_ok = False
-        thread_name = style.Thread(host.split('.')[0]) + ': '
-        logger.info(thread_name + 'Starting combination ' + slugify(comb) )
     
-        try:
-	    Remote("python /home/sirimie/Documents/sgcbntier/paasage_demo/run_all_execo.py %s", [host]).run()
-            # Create the XML file          
-
-	    params = []
-          
-	    for _, value in comb.iteritems():
-	    	params.append(str(value))
-	    	
-	    param_str = '_'.join(params)
-
-	    Remote("python /home/sirimie/Documents/sgcbntier/paasage_demo/xml_gen_execo.py -cb %s" % param_str, [host]).run()
-
-	    
-            # Run the code
-
-	    logger.info("Processing %s" % param_str)
-	    Remote("rm -f /home/sirimie/Documents/sgcbntier/paasage_demo/csv/REQTASK_*", [host]).run() 
-	    Remote("python /home/sirimie/Documents/sgcbntier/paasage_demo/run_all_execo.py %s", [host]).run()
-
-
-            # Get the results
-	    
-            #Remote("rsync -avzP /home/sirimie/Documents/sgcbntier/paasage_demo/csv/REQTASK_"+traceFile+".csv   sirimie@access.lyon.grid5000.fr:/home/sirimie/restuls/",[host]).run()
-
-            comb_dir = self.result_dir + '/' + slugify(comb) + '/'
-            try:
-                os.mkdir(comb_dir)
-            except:
-                logger.warning(thread_name +
-                    '%s already exists, removing existing files', comb_dir)
-                for f in os.listdir(comb_dir):
-                    os.remove(comb_dir + f)
-             
-            get_results = Get([host], ["/home/sirimie/Documents/sgcbntier/paasage_demo/csv/REQTASK_*"]).run() 
-
-            for p in get_results.processes:
-                if not p.ok:
-                    logger.error(host +
-                        ': Unable to retrieve the files for combination %s',
-                        slugify(comb))
-                    exit()
-            
-            comb_ok = True
-        finally:
-            if comb_ok:
-                self.sweeper.done(comb)
-                logger.info(thread_name + ': ' + slugify(comb) + \
-                             ' has been done')
-            else:
-                self.sweeper.cancel(comb)
-                logger.warning(thread_name + ': ' + slugify(comb) + \
-                            ' has been canceled')
-        logger.info(style.step('%s Remaining'),
-                        len(self.sweeper.get_remaining()))
-
-    def is_job_alive(self):
-	rez=get_oargrid_job_info(self.oargrid_job_id)
-	if (rez["start_date"]+rez["walltime"] > time.time()):
-		return True
-	else:
-		return False
-
     def run(self):
         """ """
         if self.options.oargrid_job_id:
@@ -183,7 +57,7 @@ class paassage_simu(Engine):
             self.define_parameters()
         
             job_is_dead = False
-            # While they are combinations to treat
+            # While there are combinations to treat
             while len(self.sweeper.get_remaining()) > 0:
                 # If no job, we make a reservation and prepare the hosts for the experiments
                 if self.oargrid_job_id is None:
@@ -195,9 +69,20 @@ class paassage_simu(Engine):
                 # Hosts deployment and configuration
                 deployment = Deployment(hosts = self.hosts, 
                                         env_file='/home/sirimie/env/mywheezy-x64-base.env')
+		default_connection_params['user'] = 'root'
+
 		logger.info("Start deployment")
+		"""
+		sites=get_g5k_sites()	
+		for site in sites:				
+			Remote("mkdir /home/sirimie/images", [site]).run() 
+			Put([site], ["/home/sirimie/images/mywheezy-x64-base_V6.tgz"], remote_location="/home/sirimie/images/").run()
+		"""
                 self.hosts, _ = deploy(deployment)
-		Put(self.hosts, ["run_all_execo.py","xml_gen_execo.py", "conf.xml"], remote_location="/home/sirimie/Documents/sgcbntier/paasage_demo/").run()
+		
+		Remote("rm -f /home/Work/sgcbntier/paasage_demo/csv/REQTASK_*", self.hosts).run() 
+		Put(self.hosts, ["run_all_execo.py","xml_gen_execo.py", "conf.xml"], remote_location="/home/Work/sgcbntier/paasage_demo/").run()
+		
 		logger.info("Finish deployment")
                 
                 if len(self.hosts) == 0:
@@ -261,6 +146,128 @@ class paassage_simu(Engine):
                     logger.info('Keeping job alive for debugging')
 
 
+
+              
+
+    def define_parameters(self):
+        """ """
+	parameters= self.get_parameters("conf.xml")
+
+        #parameters = {'http_c1.xlarge': range(1), 'http_m1.large': range(1, 2), 'app_c1.medium': range(1, 3), 'db_m2.xlarge': range(0, 2),'db_m1.medium': range(0, 2)}
+        
+        sweeps = sweep(parameters)
+        self.sweeper = ParamSweeper(os.path.join(self.result_dir, "sweeps"), sweeps)        
+        logger.info('Number of parameters combinations %s', len(self.sweeper.get_remaining()))
+        
+
+    def make_reservation(self):
+        """ """
+        logger.info('Performing reservation')
+	starttime = int(time.time() + timedelta_to_seconds(datetime.timedelta(minutes=1)))
+	planning = get_planning(elements=['lyon'],
+		                starttime=starttime)
+	slots = compute_slots(planning, self.options.walltime)
+	wanted = { "lyon": 0 }
+	start_date, end_date, resources = find_first_slot(slots, wanted)
+	wanted['lyon'] = min(resources['lyon'], self.options.n_nodes)
+	actual_resources = distribute_hosts(resources, wanted, ratio = 0.8)
+	job_specs = get_jobs_specs(actual_resources, name='Paasage_Simu') 
+        logger.info("try to reserve " + str(actual_resources))
+        self.oargrid_job_id , _= oargridsub(job_specs, start_date,
+                          walltime = end_date - start_date,
+                          job_type = "deploy")
+        logger.info("Reservation done")
+
+
+
+
+    def get_parameters(self, file_name):
+        """Get the parameters to sweep, from the configuration file"""
+	tree = ET.parse(file_name)
+	rootSrc = tree.getroot()
+	param= dict()
+
+	for inst in rootSrc.iter("instance"):
+		ty=inst.get("type")
+		qt=inst.get("quantity")
+		
+		if (qt.isdigit()):
+			param[ty]=qt
+		else:
+			ends=qt.split("-")
+			param[ty]=range(int(ends[0]), int(ends[1])+1)	
+	
+	return param
+
+    def workflow(self, comb, host):
+        """ """
+	logger.info("In workflow")
+        comb_ok = False
+        thread_name = style.Thread(host.split('.')[0]) + ': '
+        logger.info(thread_name + 'Starting combination ' + slugify(comb) )
+    
+        try:
+            # Create the XML file          
+
+	    params = []
+          
+	    for _, value in comb.iteritems():
+	    	params.append(str(value))
+	    	
+	    param_str = '_'.join(params)
+
+	    Remote("python /home/Work/sgcbntier/paasage_demo/xml_gen_execo.py --cb %s" % param_str, [host]).run()
+
+	    
+            # Run the code
+
+	    logger.info("Processing %s" % param_str)
+ 
+	    Remote("cd /home/Work/sgcbntier/paasage_demo/ ; python run_all_execo.py --cb %s" % param_str, [host]).run()
+
+            # Get the results
+	  
+
+            comb_dir = self.result_dir + '/' + slugify(comb) + '/'
+            try:
+                os.mkdir(comb_dir)
+            except:
+                logger.warning(thread_name +
+                    '%s already exists, removing existing files', comb_dir)
+                for f in os.listdir(comb_dir):
+                    os.remove(comb_dir + f)
+             
+            get_results = Get([host], ["/home/Work/sgcbntier/paasage_demo/csv/REQTASK_*"]).run() 
+
+            for p in get_results.processes:
+                if not p.ok:
+                    logger.error(host +
+                        ': Unable to retrieve the files for combination %s',
+                        slugify(comb))
+                    exit()
+            
+            comb_ok = True
+        finally:
+            if comb_ok:
+                self.sweeper.done(comb)
+                logger.info(thread_name + ': ' + slugify(comb) + \
+                             ' has been done')
+            else:
+                self.sweeper.cancel(comb)
+                logger.warning(thread_name + ': ' + slugify(comb) + \
+                            ' has been canceled')
+        logger.info(style.step('%s Remaining'),
+                        len(self.sweeper.get_remaining()))
+
+    def is_job_alive(self):
+	rez=get_oargrid_job_info(self.oargrid_job_id)
+	if (rez["start_date"]+rez["walltime"] > time.time()):
+		return True
+	else:
+		return False
+
+
 if __name__ == "__main__":
     engine = paassage_simu()
     engine.start()
+

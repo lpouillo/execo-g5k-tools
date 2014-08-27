@@ -4,6 +4,8 @@ import shutil
 import lxml.etree as le
 import re
 import itertools
+
+from optparse import OptionParser
 	
 
 def initXML():
@@ -131,9 +133,8 @@ def generateExp(lis, rootSrc):
 	xml_string=ET.tostring(root, encoding='utf8', method='xml')
 	xml = DOM.parseString(xml_string) 
 	pretty_xml_as_string = xml.toprettyxml()
-	outFile=open("test.xml", "w")
+	outFile=open("/home/Work/sgcbntier/paasage_demo/test.xml", "w")
 	outFile.write(pretty_xml_as_string)
-
 
 
 
@@ -141,14 +142,14 @@ def generateExp(lis, rootSrc):
 if __name__ == "__main__":
 
 	
-	tree = ET.parse("conf.xml")
+	tree = ET.parse("/home/Work/sgcbntier/paasage_demo/conf.xml")
 	rootSrc = tree.getroot()
 
 
 	usage = "usage: %prog [options] [args] "
 	parser = OptionParser(usage=usage)
 
-	parser.add_option("-cb", dest="comb", help="current combination")
+	parser.add_option("--cb", dest="comb", help="current combination")
 
 	(options, args) = parser.parse_args()
 
@@ -156,9 +157,9 @@ if __name__ == "__main__":
 		parser.error("You must provide parameters for the experiment !")
 
 
-	comb=getArgs(options.comb)
+	comb=options.comb
 
-	comb_list=comb.split("-")
+	comb_list=comb.split("_")
 
 	generateExp(comb_list, rootSrc) 
 	
