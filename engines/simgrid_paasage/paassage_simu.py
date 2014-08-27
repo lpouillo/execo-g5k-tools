@@ -7,6 +7,7 @@ import xml.etree.cElementTree as ET
 from threading import Thread
 from execo import Put, Remote, Get, sleep, default_connection_params
 from execo.log import style
+from execo import logger as ex_log
 from execo.time_utils import timedelta_to_seconds
 from execo_g5k import get_host_attributes, get_planning, compute_slots, \
     find_first_slot, distribute_hosts, get_jobs_specs, \
@@ -63,27 +64,24 @@ class paassage_simu(Engine):
                 if self.oargrid_job_id is None:
                     self.make_reservation()
                 # Wait that the job starts
+                logger.info('Waiting that the job start')
                 wait_oargrid_job_start(self.oargrid_job_id)
                 # Retrieving the hosts and subnets parameters
                 self.hosts = get_oargrid_job_nodes(self.oargrid_job_id)
                 # Hosts deployment and configuration
-                deployment = Deployment(hosts = self.hosts, 
-                                        env_file='/home/sirimie/env/mywheezy-x64-base.env')
-		default_connection_params['user'] = 'root'
+                
+                
+                default_connection_params['user'] = 'root'
 
-		logger.info("Start deployment")
-		"""
-		sites=get_g5k_sites()	
-		for site in sites:				
-			Remote("mkdir /home/sirimie/images", [site]).run() 
-			Put([site], ["/home/sirimie/images/mywheezy-x64-base_V6.tgz"], remote_location="/home/sirimie/images/").run()
-		"""
-                self.hosts, _ = deploy(deployment)
-		
-		Remote("rm -f /home/Work/sgcbntier/paasage_demo/csv/REQTASK_*", self.hosts).run() 
-		Put(self.hosts, ["run_all_execo.py","xml_gen_execo.py", "conf.xml"], remote_location="/home/Work/sgcbntier/paasage_demo/").run()
-		
-		logger.info("Finish deployment")
+                logger.info("Start hosts configuration")
+                ex_log.setLevel('DEBUG')
+                deployment = Deployment(hosts = self.hosts, 
+                            env_file='/home/sirimie/env/mywheezy-x64-base.env')
+                self.hosts, _ = deploy(deployment)        
+                ex_log.setLevel('INFO')
+                Remote("rm -f /home/Work/sgcbntier/paasage_demo/csv/REQTASK_*", self.hosts).run() 
+                Put(self.hosts, ["run_all_execo.py","xml_gen_execo.py", "conf.xml"], remote_location="/home/Work/sgcbntier/paasage_demo/").run()
+                logger.info("Done")
                 
                 if len(self.hosts) == 0:
                     break
@@ -151,10 +149,8 @@ class paassage_simu(Engine):
 
     def define_parameters(self):
         """ """
-	parameters= self.get_parameters("conf.xml")
-
+        parameters= self.get_parameters("conf.xml")
         #parameters = {'http_c1.xlarge': range(1), 'http_m1.large': range(1, 2), 'app_c1.medium': range(1, 3), 'db_m2.xlarge': range(0, 2),'db_m1.medium': range(0, 2)}
-        
         sweeps = sweep(parameters)
         self.sweeper = ParamSweeper(os.path.join(self.result_dir, "sweeps"), sweeps)        
         logger.info('Number of parameters combinations %s', len(self.sweeper.get_remaining()))
@@ -163,15 +159,16 @@ class paassage_simu(Engine):
     def make_reservation(self):
         """ """
         logger.info('Performing reservation')
-	starttime = int(time.time() + timedelta_to_seconds(datetime.timedelta(minutes=1)))
-	planning = get_planning(elements=['lyon'],
-		                starttime=starttime)
-	slots = compute_slots(planning, self.options.walltime)
-	wanted = { "lyon": 0 }
-	start_date, end_date, resources = find_first_slot(slots, wanted)
-	wanted['lyon'] = min(resources['lyon'], self.options.n_nodes)
-	actual_resources = distribute_hosts(resources, wanted, ratio = 0.8)
-	job_specs = get_jobs_specs(actual_resources, name='Paasage_Simu') 
+        starttime = int(time.time() + timedelta_to_seconds(datetime.timedelta(minutes=1)))
+        planning = get_planning(elements=['grid5000'],
+                            starttime=starttime)
+        slots = compute_slots(planning, self.options.walltime)
+        wanted = { "grid5000": 0 }
+        start_date, end_date, resources = find_first_slot(slots, wanted)
+        wanted['grid5000'] = min(resources['grid5000'], self.options.n_nodes)
+        actual_resources = distribute_hosts(resources, wanted)
+
+        job_specs = get_jobs_specs(actual_resources, name='Paasage_Simu') 
         logger.info("try to reserve " + str(actual_resources))
         self.oargrid_job_id , _= oargridsub(job_specs, start_date,
                           walltime = end_date - start_date,
@@ -183,51 +180,38 @@ class paassage_simu(Engine):
 
     def get_parameters(self, file_name):
         """Get the parameters to sweep, from the configuration file"""
-	tree = ET.parse(file_name)
-	rootSrc = tree.getroot()
-	param= dict()
+        tree = ET.parse(file_name)
+        rootSrc = tree.getroot()
+        param= dict()
 
-	for inst in rootSrc.iter("instance"):
-		ty=inst.get("type")
-		qt=inst.get("quantity")
-		
-		if (qt.isdigit()):
-			param[ty]=qt
-		else:
-			ends=qt.split("-")
-			param[ty]=range(int(ends[0]), int(ends[1])+1)	
-	
-	return param
+        for inst in rootSrc.iter("instance"):
+            ty=inst.get("type")
+            qt=inst.get("quantity")
+            
+            if (qt.isdigit()):
+                param[ty]=qt
+            else:
+                ends=qt.split("-")
+                param[ty]=range(int(ends[0]), int(ends[1])+1)    
+        
+        return param
 
     def workflow(self, comb, host):
         """ """
-	logger.info("In workflow")
+        logger.info("Treating %s", slugify(comb))
         comb_ok = False
         thread_name = style.Thread(host.split('.')[0]) + ': '
         logger.info(thread_name + 'Starting combination ' + slugify(comb) )
     
         try:
-            # Create the XML file          
+            # Create the XML file                      
+            param_str = '_'.join(str(val) for val in comb.itervalues())
+            Remote("python /home/Work/sgcbntier/paasage_demo/xml_gen_execo.py --cb %s" % param_str, [host]).run()
 
-	    params = []
-          
-	    for _, value in comb.iteritems():
-	    	params.append(str(value))
-	    	
-	    param_str = '_'.join(params)
-
-	    Remote("python /home/Work/sgcbntier/paasage_demo/xml_gen_execo.py --cb %s" % param_str, [host]).run()
-
-	    
             # Run the code
-
-	    logger.info("Processing %s" % param_str)
- 
-	    Remote("cd /home/Work/sgcbntier/paasage_demo/ ; python run_all_execo.py --cb %s" % param_str, [host]).run()
+            Remote("cd /home/Work/sgcbntier/paasage_demo/ ; python run_all_execo.py --cb %s" % param_str, [host]).run()
 
             # Get the results
-	  
-
             comb_dir = self.result_dir + '/' + slugify(comb) + '/'
             try:
                 os.mkdir(comb_dir)
@@ -237,7 +221,8 @@ class paassage_simu(Engine):
                 for f in os.listdir(comb_dir):
                     os.remove(comb_dir + f)
              
-            get_results = Get([host], ["/home/Work/sgcbntier/paasage_demo/csv/REQTASK_*"]).run() 
+            get_results = Get([host], ["/home/Work/sgcbntier/paasage_demo/csv/REQTASK_*"],
+                            local_location = comb_dir).run() 
 
             for p in get_results.processes:
                 if not p.ok:
@@ -260,14 +245,13 @@ class paassage_simu(Engine):
                         len(self.sweeper.get_remaining()))
 
     def is_job_alive(self):
-	rez=get_oargrid_job_info(self.oargrid_job_id)
-	if (rez["start_date"]+rez["walltime"] > time.time()):
-		return True
-	else:
-		return False
+        rez=get_oargrid_job_info(self.oargrid_job_id)
+        if (rez["start_date"]+rez["walltime"] > time.time()):
+            return True
+        else:
+            return False
 
 
 if __name__ == "__main__":
     engine = paassage_simu()
     engine.start()
-
