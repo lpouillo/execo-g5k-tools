@@ -74,11 +74,10 @@ class paassage_simu(Engine):
                 default_connection_params['user'] = 'root'
 
                 logger.info("Start hosts configuration")
-                ex_log.setLevel('DEBUG')
+                ex_log.setLevel('INFO')
                 deployment = Deployment(hosts = self.hosts, 
                             env_file='/home/sirimie/env/mywheezy-x64-base.env')
                 self.hosts, _ = deploy(deployment)        
-                ex_log.setLevel('INFO')
                 Remote("rm -f /home/Work/sgcbntier/paasage_demo/csv/REQTASK_*", self.hosts).run() 
                 Put(self.hosts, ["run_all_execo.py","xml_gen_execo.py", "conf.xml"], remote_location="/home/Work/sgcbntier/paasage_demo/").run()
                 logger.info("Done")
@@ -182,7 +181,7 @@ class paassage_simu(Engine):
         """Get the parameters to sweep, from the configuration file"""
         tree = ET.parse(file_name)
         rootSrc = tree.getroot()
-        param= dict()
+        param = dict()
 
         for inst in rootSrc.iter("instance"):
             ty=inst.get("type")
@@ -194,24 +193,24 @@ class paassage_simu(Engine):
                 ends=qt.split("-")
                 param[ty]=range(int(ends[0]), int(ends[1])+1)    
         
+        print param
         return param
 
     def workflow(self, comb, host):
         """ """
-        logger.info("Treating %s", slugify(comb))
         comb_ok = False
         thread_name = style.Thread(host.split('.')[0]) + ': '
         logger.info(thread_name + 'Starting combination ' + slugify(comb) )
     
-        try:
-            # Create the XML file                      
-            param_str = '_'.join(str(val) for val in comb.itervalues())
+        try:          
+            logger.info(thread_name + 'Generate conf file')            
+            param_str = slugify(comb)
             Remote("python /home/Work/sgcbntier/paasage_demo/xml_gen_execo.py --cb %s" % param_str, [host]).run()
 
-            # Run the code
+            logger.info(thread_name + 'Run code')
             Remote("cd /home/Work/sgcbntier/paasage_demo/ ; python run_all_execo.py --cb %s" % param_str, [host]).run()
 
-            # Get the results
+            logger.info(thread_name + 'Get results')
             comb_dir = self.result_dir + '/' + slugify(comb) + '/'
             try:
                 os.mkdir(comb_dir)

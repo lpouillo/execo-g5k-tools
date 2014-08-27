@@ -50,7 +50,7 @@ def replaceWord(src, dst, word1, word2):
 def insertExp(expName, traceFile, xmlConfFile):
     try:
         sql = "INSERT INTO exp (exp_name, exp_id_cfg, trace_file, xml_file) VALUES (%s, %s, %s, %s)"
-            cur.execute(sql,(expName, 1, traceFile, xmlConfFile))
+        cur.execute(sql,(expName, 1, traceFile, xmlConfFile))
         exp_id=cur.lastrowid
         db.commit()   
     except:

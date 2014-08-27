@@ -69,9 +69,12 @@ def generateExp(lis, rootSrc):
     servDb=createService(servParent,"dbService")
 
     i=0
+    
+    print lis
+    exit()
 
-    web=rootSrc.find("webService")
-    if (web==None):
+    web = rootSrc.find("webService")
+    if (web == None):
         print "webService tag not found!"
         exit(1)
     for child1 in web.iter("region"):
@@ -124,7 +127,7 @@ def generateExp(lis, rootSrc):
                 i+=1
                 continue
         if not regionTmp.getchildren():    
-               servDb.remove(regionTmp)
+            servDb.remove(regionTmp)
     if(not servDb.getchildren()):
         print "ERROR: Db service does not has any vm instance associated for first experiment"
         exit(2)        
@@ -141,10 +144,8 @@ def generateExp(lis, rootSrc):
 
 if __name__ == "__main__":
 
-    
     tree = ET.parse("/home/Work/sgcbntier/paasage_demo/conf.xml")
     rootSrc = tree.getroot()
-
 
     usage = "usage: %prog [options] [args] "
     parser = OptionParser(usage=usage)
@@ -156,10 +157,8 @@ if __name__ == "__main__":
     if not (options.comb):
         parser.error("You must provide parameters for the experiment !")
 
+    comb_list=options.comb.split("_")
 
-    comb=options.comb
-
-    comb_list=comb.split("_")
 
     generateExp(comb_list, rootSrc) 
     
