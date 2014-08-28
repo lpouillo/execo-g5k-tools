@@ -61,7 +61,7 @@ def createInstance(parent, ty, qt):
     return tmp    
 
 
-def generateExp(lis, rootSrc):
+def generateExp(comb, lis, rootSrc):
     root=initXML()
     servParent=ET.SubElement(root, "services")
     servWeb=createService(servParent,"webService")
@@ -136,7 +136,7 @@ def generateExp(lis, rootSrc):
     xml_string=ET.tostring(root, encoding='utf8', method='xml')
     xml = DOM.parseString(xml_string) 
     pretty_xml_as_string = xml.toprettyxml()
-    outFile=open("/home/Work/sgcbntier/paasage_demo/test.xml", "w")
+    outFile=open("/home/Work/sgcbntier/paasage_demo/exp_"+comb, "w")
     outFile.write(pretty_xml_as_string)
 
 
@@ -160,7 +160,7 @@ if __name__ == "__main__":
     comb_list=options.comb.split("_")
 
 
-    generateExp(comb_list, rootSrc) 
+    generateExp(options.comb, comb_list, rootSrc) 
     
 
 

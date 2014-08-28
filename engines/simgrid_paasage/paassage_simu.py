@@ -5,7 +5,7 @@ import os, time, datetime
 import xml.etree.cElementTree as ET
 
 from threading import Thread
-from execo import Put, Remote, Get, sleep, default_connection_params
+from execo import Put, Remote, Get, sleep, default_connection_params, Host
 from execo.log import style
 from execo import logger as ex_log
 from execo.time_utils import timedelta_to_seconds
