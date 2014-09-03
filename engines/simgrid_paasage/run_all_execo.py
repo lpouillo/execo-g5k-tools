@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
-import xml.etree.cElementTree as ET
+import xml.etree.cElementTree as ET # that 'c' in "...etree.cElement..." 
+									# means the package is a C implementation; it runs 15-20 times faster 
+									# than equivalent python implementation
 import csv
 import sys
 import os
@@ -36,28 +38,21 @@ if __name__ == "__main__":
 	usage = "usage: %prog [options] [args] "
 	parser = OptionParser(usage=usage)
 
-	parser.add_option("-f", dest="confFile", help="experiments' configuration file name", default="conf.xml")
 	parser.add_option("--cb", dest="comb", help="current combination")
 
 	(options, args) = parser.parse_args()
-
-	if not (options.confFile):
-		parser.error("You must provide the configuration file name of the experiments !")
-
-
-	CONF=options.confFile
+	
 	name=options.comb
 
 	if  not os.path.exists("/home/Work/sgcbntier/paasage_demo/log") :   
-		os.mkdir("/home/Work/sgcbntier/paasage_demo/log",755);
+		os.mkdir("/home/Work/sgcbntier/paasage_demo/log");
 	if  not os.path.exists("/home/Work/sgcbntier/paasage_demo/csv") :
-		os.mkdir("/home/Work/sgcbntier/paasage_demo/csv",755);
-
+		os.mkdir("/home/Work/sgcbntier/paasage_demo/csv");
 
 
 	traceFile="ntier_"+name
 	confFile="sgcb_ntier_"+name+".conf"
-	xmlConfFile="exp_"+name
+	xmlConfFile="exp_"+name+".xml"
 
 
 	shutil.copyfile("/home/Work/sgcbntier/paasage_demo/sgcb_ntier.conf", "/home/Work/sgcbntier/paasage_demo/"+confFile+".tmp")

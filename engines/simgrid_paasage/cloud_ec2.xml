@@ -1,0 +1,1366 @@
+<?xml version='1.0'?>
+ <!DOCTYPE clouds>
+ <clouds version="1">
+	 <cloud  id="usa_west_1" as_id="AS_usa_west_1"  
+         compute_unit_power="4.4" vm_image_deployment_policy="AWS" 
+         max_vcpu_per_core="1" max_concurrent_boots="2" inter_boot_delay="18"
+         controller="usa_west_1_controler-1.usa_west_1.broker.simgrid.org"
+         spotmanager="usa_west_1_controler-2.usa_west_1.broker.simgrid.org"
+         billmanager="usa_west_1_controler-3.usa_west_1.broker.simgrid.org"
+         ebs_controller="usa_west_1_EBS-1.usa_west_1.broker.simgrid.org"
+         s3_controller="usa_west_1_S3-1.usa_west_1.broker.simgrid.org"
+         vm_pm_placement="onevmperhost">
+		<dynamic_price id="random" record="TRUE" recordFile="scenario/siprice_random"/>
+         	<hypervisors>       
+           		<cluster id="AS_usa_west_1_pm_c1.xlarge"/>
+           		<cluster id="AS_usa_west_1_pm_c1.medium"/>
+           		<cluster id="AS_usa_west_1_pm_m1.medium"/>
+           		<cluster id="AS_usa_west_1_pm_m3.2xlarge"/>
+           		<cluster id="AS_usa_west_1_pm_m3.xlarge"/>
+           		<cluster id="AS_usa_west_1_pm_m2.4xlarge"/>
+           		<cluster id="AS_usa_west_1_pm_m2.2xlarge"/>
+           		<cluster id="AS_usa_west_1_pm_m2.xlarge"/>
+           		<cluster id="AS_usa_west_1_pm_m1.xlarge"/>
+           		<cluster id="AS_usa_west_1_pm_m1.large"/>
+           		<cluster id="AS_usa_west_1_pm_m1.small"/>
+           	</hypervisors>
+           	<instance_types>
+           		<instance id="c1.xlarge" vcpu="8" computing_unit="2.5" memory="7000" disk="1690">
+           			<on_demand_price price="0.580"/>
+           			
+           		</instance>
+           		<instance id="c1.medium" vcpu="2" computing_unit="2.5" memory="1700" disk="350">
+           			<on_demand_price price="0.145"/>
+           			
+           		</instance>
+           		<instance id="m3.2xlarge" vcpu="8" computing_unit="3.25" memory="30000" disk="-1">
+           			<on_demand_price price="1.000"/>
+           			
+           		</instance>
+           		<instance id="m3.xlarge" vcpu="4" computing_unit="3.25" memory="15000" disk="-1">
+           			<on_demand_price price="0.500"/>
+           			
+           		</instance>
+           		<instance id="m2.4xlarge" vcpu="8" computing_unit="3.25" memory="68400" disk="1690">
+           			<on_demand_price price="1.640"/>
+           			
+           		</instance>
+           		<instance id="m2.2xlarge" vcpu="4" computing_unit="3.25" memory="34200" disk="850">
+           			<on_demand_price price="0.820"/>
+           			
+           		</instance>
+           		<instance id="m2.xlarge" vcpu="2" computing_unit="3.25" memory="17100" disk="420">
+           			<on_demand_price price="0.410"/>
+           			
+           		</instance>
+           		<instance id="m1.xlarge" vcpu="4" computing_unit="2" memory="15000" disk="1690">
+           			<on_demand_price price="0.480"/>
+           			
+           		</instance>
+           		<instance id="m1.large" vcpu="2" computing_unit="2" memory="7500" disk="850">
+           			<on_demand_price price="0.240"/>
+           			
+           		</instance>
+           		<instance id="m1.medium" vcpu="2" computing_unit="1" memory="3750" disk="410">
+           			<on_demand_price price="0.120"/>
+           			
+           		</instance>
+           		<instance id="m1.small" vcpu="1" computing_unit="1" memory="1700" disk="160">
+           			<on_demand_price price="0.060"/>
+           			
+           		</instance>
+           	</instance_types>
+           	<data_transfer_prices>
+           		<internet>
+           			<input>
+           				<range price="0.0"/>
+           			</input>
+           			<output>
+           				<range begin="0" end="1" price="0.0"/>
+           				<range begin="1" end="10000" price="0.120"/>
+           				<range begin="10000" end="40000" price="0.090"/>
+           				<range begin="40000" end="100000" price="0.070"/>
+           				<range begin="100000" price="0.050"/>
+           			</output>
+           		</internet>
+           		<inter_zone>
+           			<input>
+           				<range price="0.01"/>
+           			</input>
+           			<output>
+           				<range price="0.01"/>
+           			</output>
+           		</inter_zone>
+           		<inter_region>
+           		    <input>
+           				<range price="0.0"/>
+           			</input>
+           			<output>
+           				<range price="0.02"/>
+           			</output>
+           		</inter_region>
+           		<intra_zone>
+           			<input>
+           				<range price="0.0"/>
+           			</input>
+           			<output>
+           				<range price="0.0"/>
+           			</output>
+           		</intra_zone>
+           	</data_transfer_prices>
+           	<storage_prices>
+           		<ebs_prices>
+           			<volume>
+           				<gbmonth price="0.10"/>
+           				<iorequest requests="1000000" price="0.10"/>
+           				<snapshot price="0.095"/>
+           			</volume>
+           		</ebs_prices>
+           		<s3_prices>
+           			<standard>
+           				<range begin="0" end="1000" price="0.095"/>
+           				<range begin="1000" end="49000" price="0.080"/>
+           				<range begin="49000" end="450000" price="0.070"/>
+           				<range begin="450000" end="500000" price="0.065"/>
+           				<range begin="500000" end="4000000" price="0.060"/>
+						<range begin="5000000" price="0.055"/>
+           			</standard>
+           			<reduced_redundancy>
+           				<range begin="0" end="1000" price="0.076"/>
+           				<range begin="1000" end="49000" price="0.064"/>
+           				<range begin="49000" end="450000" price="0.056"/>
+           				<range begin="450000" end="500000" price="0.052"/>
+           				<range begin="500000" end="4000000" price="0.048"/>
+						<range begin="5000000" price="0.037"/>
+           			</reduced_redundancy>
+           			<requests>
+           				<put requests="1000" price="0.005"/>
+           				<get requests="10000" price="0.004"/>
+           				<delete price="0.0"/>
+           			</requests>
+           			<data_transfer_prices>
+						<local_ec2>
+		           			<input>
+           						<range price="0.0"/>
+           					</input>
+           					<output>
+           						<range price="0.0"/>
+           					</output>
+           				</local_ec2>
+           				<remote_ec2>
+           					<input>
+           						<range price="0.0"/>
+           					</input>
+           					<output>
+           						<range price="0.020"/>
+           					</output>
+           				</remote_ec2>
+           				<internet>
+           					<input>
+           						<range price="0.0"/>
+           					</input>
+           					<output>
+           						<range begin="0" end="1" price="0.0"/>
+           						<range begin="1" end="10000" price="0.120"/>
+           						<range begin="10000" end="40000" price="0.090"/>
+           						<range begin="40000" end="100000" price="0.070"/>
+           						<range begin="100000" end="350000" price="0.050"/>
+           						<range begin="350000" price="0.050"/>
+           					</output>
+           				</internet>
+           			</data_transfer_prices>
+           		</s3_prices>
+           	</storage_prices>
+         </cloud>
+     <cloud  id="usa_west_2" as_id="AS_usa_west_2" 
+         compute_unit_power="4.4" vm_image_deployment_policy="AWS" 
+         max_vcpu_per_core="1" max_concurrent_boots="2" inter_boot_delay="18"
+         controller="usa_west_2_controler-1.usa_west_2.broker.simgrid.org"
+         spotmanager="usa_west_2_controler-2.usa_west_2.broker.simgrid.org"
+         billmanager="usa_west_2_controler-3.usa_west_2.broker.simgrid.org"
+         ebs_controller="usa_west_2_EBS-1.usa_west_2.broker.simgrid.org"
+         s3_controller="usa_west_2_S3-1.usa_west_2.broker.simgrid.org"
+         vm_pm_placement="onevmperhost">
+         	<dynamic_price id="random" record="TRUE" recordFile="scenario/siprice_random"/>
+		<hypervisors>       
+           		<cluster id="AS_usa_west_2_pm_c1.xlarge"/>
+           		<cluster id="AS_usa_west_2_pm_c1.medium"/>
+           		<cluster id="AS_usa_west_2_pm_m1.medium"/>
+           		<cluster id="AS_usa_west_2_pm_m3.2xlarge"/>
+           		<cluster id="AS_usa_west_2_pm_m3.xlarge"/>
+           		<cluster id="AS_usa_west_2_pm_m2.4xlarge"/>
+           		<cluster id="AS_usa_west_2_pm_m2.2xlarge"/>
+           		<cluster id="AS_usa_west_2_pm_m2.xlarge"/>
+           		<cluster id="AS_usa_west_2_pm_m1.xlarge"/>
+           		<cluster id="AS_usa_west_2_pm_m1.large"/>
+           		<cluster id="AS_usa_west_2_pm_m1.small"/>
+           	</hypervisors>
+           	<instance_types>
+           		<instance id="c1.xlarge" vcpu="8" computing_unit="2.5" memory="7000" disk="1690">
+           			<on_demand_price price="0.660"/>
+           			
+           		</instance>
+           		<instance id="c1.medium" vcpu="2" computing_unit="2.5" memory="1700" disk="350">
+           			<on_demand_price price="0.165"/>
+           			
+           		</instance>
+           		<instance id="m3.2xlarge" vcpu="8" computing_unit="3.25" memory="30000" disk="-1">
+           			<on_demand_price price="1.100"/>
+           			
+           		</instance>
+           		<instance id="m3.xlarge" vcpu="4" computing_unit="3.25" memory="15000" disk="-1">
+           			<on_demand_price price="0.550"/>
+           			
+           		</instance>
+           		<instance id="m2.4xlarge" vcpu="8" computing_unit="3.25" memory="68400" disk="1690">
+           			<on_demand_price price="1.840"/>
+           			
+           		</instance>
+           		<instance id="m2.2xlarge" vcpu="4" computing_unit="3.25" memory="34200" disk="850">
+           			<on_demand_price price="0.920"/>
+           			
+           		</instance>
+           		<instance id="m2.xlarge" vcpu="2" computing_unit="3.25" memory="17100" disk="420">
+           			<on_demand_price price="0.460"/>
+           			
+           		</instance>
+           		<instance id="m1.xlarge" vcpu="4" computing_unit="2" memory="15000" disk="1690">
+           			<on_demand_price price="0.520"/>
+           			
+           		</instance>
+           		<instance id="m1.large" vcpu="2" computing_unit="2" memory="7500" disk="850">
+           			<on_demand_price price="0.260"/>
+           			
+           		</instance>
+           		<instance id="m1.medium" vcpu="2" computing_unit="1" memory="3750" disk="410">
+           			<on_demand_price price="0.130"/>
+           			
+           		</instance>
+           		<instance id="m1.small" vcpu="1" computing_unit="1" memory="1700" disk="160">
+           			<on_demand_price price="0.065"/>
+           			
+           		</instance>
+           	</instance_types>
+           	<data_transfer_prices>
+           		<internet>
+           			<input>
+           				<range price="0.0"/>
+           			</input>
+           			<output>
+           				<range begin="0" end="1" price="0.0"/>
+           				<range begin="1" end="10000" price="0.120"/>
+           				<range begin="10000" end="40000" price="0.090"/>
+           				<range begin="40000" end="100000" price="0.070"/>
+           				<range begin="100000" price="0.050"/>
+           			</output>
+           		</internet>
+           		<inter_zone>
+           			<input>
+           				<range price="0.01"/>
+           			</input>
+           			<output>
+           				<range price="0.01"/>
+           			</output>
+           		</inter_zone>
+           		<inter_region>
+           		    <input>
+           				<range price="0.0"/>
+           			</input>
+           			<output>
+           				<range price="0.02"/>
+           			</output>
+           		</inter_region>
+           		<intra_zone>
+           			<input>
+           				<range price="0.0"/>
+           			</input>
+           			<output>
+           				<range price="0.0"/>
+           			</output>
+           		</intra_zone>
+           	</data_transfer_prices>
+           	<storage_prices>
+           		<ebs_prices>
+           			<volume>
+           				<gbmonth price="0.11"/>
+           				<iorequest requests="1000000" price="0.11"/>
+           				<snapshot price="0.105"/>
+           			</volume>
+           		</ebs_prices>
+           		<s3_prices>
+           			<standard>
+           				<range begin="0" end="1000" price="0.105"/>
+           				<range begin="1000" end="49000" price="0.090"/>
+           				<range begin="49000" end="450000" price="0.075"/>
+           				<range begin="450000" end="500000" price="0.070"/>
+           				<range begin="500000" end="4000000" price="0.065"/>
+						<range begin="5000000" price="0.060"/>
+           			</standard>
+           			<reduced_redundancy>
+           				<range begin="0" end="1000" price="0.084"/>
+           				<range begin="1000" end="49000" price="0.072"/>
+           				<range begin="49000" end="450000" price="0.060"/>
+           				<range begin="450000" end="500000" price="0.056"/>
+           				<range begin="500000" end="4000000" price="0.052"/>
+						<range begin="5000000" price="0.047"/>
+           			</reduced_redundancy>
+           			<requests>
+           				<put requests="1000" price="0.0055"/>
+           				<get requests="10000" price="0.0044"/>
+           				<delete price="0.0"/>
+           			</requests>
+           			<data_transfer_prices>
+						<local_ec2>
+		           			<input>
+           						<range price="0.0"/>
+           					</input>
+           					<output>
+           						<range price="0.0"/>
+           					</output>
+           				</local_ec2>
+           				<remote_ec2>
+           					<input>
+           						<range price="0.0"/>
+           					</input>
+           					<output>
+           						<range price="0.020"/>
+           					</output>
+           				</remote_ec2>
+           				<internet>
+           					<input>
+           						<range price="0.0"/>
+           					</input>
+           					<output>
+           						<range begin="0" end="1" price="0.0"/>
+           						<range begin="1" end="10000" price="0.120"/>
+           						<range begin="10000" end="40000" price="0.090"/>
+           						<range begin="40000" end="100000" price="0.070"/>
+           						<range begin="350000" price="0.050"/>
+           					</output>
+           				</internet>
+           			</data_transfer_prices>
+           		</s3_prices>
+           	</storage_prices>
+         </cloud>
+	 <cloud  id="usa_east_1" as_id="AS_usa_east_1" 
+         compute_unit_power="4.4" vm_image_deployment_policy="AWS" 
+         max_vcpu_per_core="1" max_concurrent_boots="2" inter_boot_delay="18"
+         controller="usa_east_1_controler-1.usa_east_1.broker.simgrid.org"
+         spotmanager="usa_east_1_controler-2.usa_east_1.broker.simgrid.org"
+         billmanager="usa_east_1_controler-3.usa_east_1.broker.simgrid.org"
+         ebs_controller="usa_east_1_EBS-1.usa_east_1.broker.simgrid.org"
+         s3_controller="usa_east_1_S3-1.usa_east_1.broker.simgrid.org"
+         vm_pm_placement="onevmperhost">
+		<dynamic_price id="random" record="TRUE" recordFile="scenario/siprice_random"/>
+         	<hypervisors>       
+           		<cluster id="AS_usa_east_1_pm_c1.xlarge"/>
+           		<cluster id="AS_usa_east_1_pm_c1.medium"/>
+           		<cluster id="AS_usa_east_1_pm_m1.medium"/>
+           		<cluster id="AS_usa_east_1_pm_m3.2xlarge"/>
+           		<cluster id="AS_usa_east_1_pm_m3.xlarge"/>
+           		<cluster id="AS_usa_east_1_pm_m2.4xlarge"/>
+           		<cluster id="AS_usa_east_1_pm_m2.2xlarge"/>
+           		<cluster id="AS_usa_east_1_pm_m2.xlarge"/>
+           		<cluster id="AS_usa_east_1_pm_m1.xlarge"/>
+           		<cluster id="AS_usa_east_1_pm_m1.large"/>
+           		<cluster id="AS_usa_east_1_pm_m1.small"/>
+           	</hypervisors>
+           	<instance_types>
+           		<instance id="c1.xlarge" vcpu="8" computing_unit="2.5" memory="7000" disk="1690">
+           			<on_demand_price price="0.580"/>
+           			
+           		</instance>
+           		<instance id="c1.medium" vcpu="2" computing_unit="2.5" memory="1700" disk="350">
+           			<on_demand_price price="0.145"/>
+           			
+           		</instance>
+           		<instance id="m3.2xlarge" vcpu="8" computing_unit="3.25" memory="30000" disk="-1">
+           			<on_demand_price price="1.000"/>
+           			
+           		</instance>
+           		<instance id="m3.xlarge" vcpu="4" computing_unit="3.25" memory="15000" disk="-1">
+           			<on_demand_price price="0.500"/>
+           			
+           		</instance>
+           		<instance id="m2.4xlarge" vcpu="8" computing_unit="3.25" memory="68400" disk="1690">
+           			<on_demand_price price="1.640"/>
+           			
+           		</instance>
+           		<instance id="m2.2xlarge" vcpu="4" computing_unit="3.25" memory="34200" disk="850">
+           			<on_demand_price price="0.820"/>
+           			
+           		</instance>
+           		<instance id="m2.xlarge" vcpu="2" computing_unit="3.25" memory="17100" disk="420">
+           			<on_demand_price price="0.410"/>
+           			
+           		</instance>
+           		<instance id="m1.xlarge" vcpu="4" computing_unit="2" memory="15000" disk="1690">
+           			<on_demand_price price="0.480"/>
+           			
+           		</instance>
+           		<instance id="m1.large" vcpu="2" computing_unit="2" memory="7500" disk="850">
+           			<on_demand_price price="0.240"/>
+           			
+           		</instance>
+           		<instance id="m1.medium" vcpu="2" computing_unit="1" memory="3750" disk="410">
+           			<on_demand_price price="0.120"/>
+           			
+           		</instance>           		
+           		<instance id="m1.small" vcpu="1" computing_unit="1" memory="1700" disk="160">
+           			<on_demand_price price="0.060"/>
+           			
+           		</instance>
+           	</instance_types>
+           	<data_transfer_prices>
+           		<internet>
+           			<input>
+           				<range price="0.0"/>
+           			</input>
+           			<output>
+           				<range begin="0" end="1" price="0.0"/>
+           				<range begin="1" end="10000" price="0.120"/>
+           				<range begin="10000" end="40000" price="0.090"/>
+           				<range begin="40000" end="100000" price="0.070"/>
+           				<range begin="100000" price="0.050"/>
+           			</output>
+           		</internet>
+           		<inter_zone>
+           			<input>
+           				<range price="0.01"/>
+           			</input>
+           			<output>
+           				<range price="0.01"/>
+           			</output>
+           		</inter_zone>
+           		<inter_region>
+           		    <input>
+           				<range price="0.0"/>
+           			</input>
+           			<output>
+           				<range price="0.02"/>
+           			</output>
+           		</inter_region>
+           		<intra_zone>
+           			<input>
+           				<range price="0.0"/>
+           			</input>
+           			<output>
+           				<range price="0.0"/>
+           			</output>
+           		</intra_zone>
+           	</data_transfer_prices>
+           	<storage_prices>
+           		<ebs_prices>
+           			<volume>
+           				<gbmonth price="0.10"/>
+           				<iorequest requests="1000000" price="0.10"/>
+           				<snapshot price="0.095"/>
+           			</volume>
+           		</ebs_prices>
+           		<s3_prices>
+           			<standard>
+           				<range begin="0" end="1000" price="0.095"/>
+           				<range begin="1000" end="49000" price="0.080"/>
+           				<range begin="49000" end="450000" price="0.070"/>
+           				<range begin="450000" end="500000" price="0.065"/>
+           				<range begin="500000" end="4000000" price="0.060"/>
+						<range begin="5000000" price="0.055"/>
+           			</standard>
+           			<reduced_redundancy>
+           				<range begin="0" end="1000" price="0.076"/>
+           				<range begin="1000" end="49000" price="0.064"/>
+           				<range begin="49000" end="450000" price="0.056"/>
+           				<range begin="450000" end="500000" price="0.052"/>
+           				<range begin="500000" end="4000000" price="0.048"/>
+						<range begin="5000000" price="0.037"/>
+           			</reduced_redundancy>
+           			<requests>
+           				<put requests="1000" price="0.005"/>
+           				<get requests="10000" price="0.004"/>
+           				<delete price="0.0"/>
+           			</requests>
+           			<data_transfer_prices>
+						<local_ec2>
+		           			<input>
+           						<range price="0.0"/>
+           					</input>
+           					<output>
+           						<range price="0.0"/>
+           					</output>
+           				</local_ec2>
+           				<remote_ec2>
+           					<input>
+           						<range price="0.0"/>
+           					</input>
+           					<output>
+           						<range price="0.020"/>
+           					</output>
+           				</remote_ec2>
+           				<internet>
+           					<input>
+           						<range price="0.0"/>
+           					</input>
+           					<output>
+           						<range begin="0" end="1" price="0.0"/>
+           						<range begin="1" end="10000" price="0.120"/>
+           						<range begin="10000" end="40000" price="0.090"/>
+           						<range begin="40000" end="100000" price="0.070"/>
+           						<range begin="350000" price="0.050"/>
+           					</output>
+           				</internet>
+           			</data_transfer_prices>
+           		</s3_prices>
+           	</storage_prices>
+         </cloud>
+	 <cloud  id="eu_1" as_id="AS_eu_1" 
+         compute_unit_power="4.4" vm_image_deployment_policy="AWS" 
+         max_vcpu_per_core="1" max_concurrent_boots="2" inter_boot_delay="18"
+         controller="eu_1_controler-1.eu_1.broker.simgrid.org"
+         spotmanager="eu_1_controler-2.eu_1.broker.simgrid.org"
+         billmanager="eu_1_controler-3.eu_1.broker.simgrid.org"
+         ebs_controller="eu_1_EBS-1.eu_1.broker.simgrid.org"
+         s3_controller="eu_1_S3-1.eu_1.broker.simgrid.org"
+         vm_pm_placement="onevmperhost">
+		<dynamic_price id="random" record="TRUE" recordFile="scenario/siprice_random"/>
+         	<hypervisors>       
+           		<cluster id="AS_eu_1_pm_c1.xlarge"/>
+           		<cluster id="AS_eu_1_pm_c1.medium"/>
+           		<cluster id="AS_eu_1_pm_m1.medium"/>
+           		<cluster id="AS_eu_1_pm_m3.2xlarge"/>
+           		<cluster id="AS_eu_1_pm_m3.xlarge"/>
+           		<cluster id="AS_eu_1_pm_m2.4xlarge"/>
+           		<cluster id="AS_eu_1_pm_m2.2xlarge"/>
+           		<cluster id="AS_eu_1_pm_m2.xlarge"/>
+           		<cluster id="AS_eu_1_pm_m1.xlarge"/>
+           		<cluster id="AS_eu_1_pm_m1.large"/>
+           		<cluster id="AS_eu_1_pm_m1.small"/>
+           	</hypervisors>
+           	<instance_types>
+           		<instance id="c1.xlarge" vcpu="8" computing_unit="2.5" memory="7000" disk="1690">
+           			<on_demand_price price="0.580"/>
+           			
+           		</instance>
+           		<instance id="c1.medium" vcpu="2" computing_unit="2.5" memory="1700" disk="350">
+           			<on_demand_price price="0.145"/>
+           			
+           		</instance>
+           		<instance id="m3.2xlarge" vcpu="8" computing_unit="3.25" memory="30000" disk="-1">
+           			<on_demand_price price="1.000"/>
+           			
+           		</instance>
+           		<instance id="m3.xlarge" vcpu="4" computing_unit="3.25" memory="15000" disk="-1">
+           			<on_demand_price price="0.500"/>
+           			
+           		</instance>
+           		<instance id="m2.4xlarge" vcpu="8" computing_unit="3.25" memory="68400" disk="1690">
+           			<on_demand_price price="1.640"/>
+           			
+           		</instance>
+           		<instance id="m2.2xlarge" vcpu="4" computing_unit="3.25" memory="34200" disk="850">
+           			<on_demand_price price="0.820"/>
+           			
+           		</instance>
+           		<instance id="m2.xlarge" vcpu="2" computing_unit="3.25" memory="17100" disk="420">
+           			<on_demand_price price="0.410"/>
+           			
+           		</instance>
+           		<instance id="m1.xlarge" vcpu="4" computing_unit="2" memory="15000" disk="1690">
+           			<on_demand_price price="0.480"/>
+           			
+           		</instance>
+           		<instance id="m1.large" vcpu="2" computing_unit="2" memory="7500" disk="850">
+           			<on_demand_price price="0.240"/>
+           			
+           		</instance>
+           		<instance id="m1.medium" vcpu="2" computing_unit="1" memory="3750" disk="410">
+           			<on_demand_price price="0.130"/>
+           			
+           		</instance>
+           		<instance id="m1.small" vcpu="1" computing_unit="1" memory="1700" disk="160">
+           			<on_demand_price price="0.060"/>
+           			
+           		</instance>
+           	</instance_types>
+           	<data_transfer_prices>
+           		<internet>
+           			<input>
+           				<range price="0.0"/>
+           			</input>
+           			<output>
+           				<range begin="0" end="1" price="0.0"/>
+           				<range begin="1" end="10000" price="0.120"/>
+           				<range begin="10000" end="40000" price="0.090"/>
+           				<range begin="40000" end="100000" price="0.070"/>
+           				<range begin="100000" price="0.050"/>
+           			</output>
+           		</internet>
+           		<inter_zone>
+           			<input>
+           				<range price="0.01"/>
+           			</input>
+           			<output>
+           				<range price="0.01"/>
+           			</output>
+           		</inter_zone>
+           		<inter_region>
+           		    <input>
+           				<range price="0.0"/>
+           			</input>
+           			<output>
+           				<range price="0.02"/>
+           			</output>
+           		</inter_region>
+           		<intra_zone>
+           			<input>
+           				<range price="0.0"/>
+           			</input>
+           			<output>
+           				<range price="0.0"/>
+           			</output>
+           		</intra_zone>
+           	</data_transfer_prices>
+           	<storage_prices>
+           		<ebs_prices>
+           			<volume>
+           				<gbmonth price="0.11"/>
+           				<iorequest requests="1000000" price="0.11"/>
+           				<snapshot price="0.095"/>
+           			</volume>
+           		</ebs_prices>
+           		<s3_prices>
+           			<standard>
+           				<range begin="0" end="1000" price="0.095"/>
+           				<range begin="1000" end="49000" price="0.080"/>
+           				<range begin="49000" end="450000" price="0.070"/>
+           				<range begin="450000" end="500000" price="0.065"/>
+           				<range begin="500000" end="4000000" price="0.060"/>
+						<range begin="5000000" price="0.055"/>
+           			</standard>
+           			<reduced_redundancy>
+           				<range begin="0" end="1000" price="0.076"/>
+           				<range begin="1000" end="49000" price="0.064"/>
+           				<range begin="49000" end="450000" price="0.056"/>
+           				<range begin="450000" end="500000" price="0.052"/>
+           				<range begin="500000" end="4000000" price="0.048"/>
+						<range begin="5000000" price="0.037"/>
+           			</reduced_redundancy>
+           			<requests>
+           				<put requests="1000" price="0.005"/>
+           				<get requests="10000" price="0.004"/>
+           				<delete price="0.0"/>
+           			</requests>
+           			<data_transfer_prices>
+						<local_ec2>
+		           			<input>
+           						<range price="0.0"/>
+           					</input>
+           					<output>
+           						<range price="0.0"/>
+           					</output>
+           				</local_ec2>
+           				<remote_ec2>
+           					<input>
+           						<range price="0.0"/>
+           					</input>
+           					<output>
+           						<range price="0.020"/>
+           					</output>
+           				</remote_ec2>
+           				<internet>
+           					<input>
+           						<range price="0.0"/>
+           					</input>
+           					<output>
+           						<range begin="0" end="1" price="0.0"/>
+           						<range begin="1" end="10000" price="0.120"/>
+           						<range begin="10000" end="40000" price="0.090"/>
+           						<range begin="40000" end="100000" price="0.070"/>
+           						<range begin="350000" price="0.050"/>
+           					</output>
+           				</internet>
+           			</data_transfer_prices>
+           		</s3_prices>
+           	</storage_prices>
+         </cloud>
+	 <cloud  id="asia_1" as_id="AS_asia_1" 
+         compute_unit_power="4.4" vm_image_deployment_policy="AWS" 
+         max_vcpu_per_core="1" max_concurrent_boots="2" inter_boot_delay="18"
+         controller="asia_1_controler-1.asia_1.broker.simgrid.org"
+         spotmanager="asia_1_controler-2.asia_1.broker.simgrid.org"
+         billmanager="asia_1_controler-3.asia_1.broker.simgrid.org"
+         ebs_controller="asia_1_EBS-1.asia_1.broker.simgrid.org"
+         s3_controller="asia_1_S3-1.asia_1.broker.simgrid.org"
+         vm_pm_placement="onevmperhost">
+		<dynamic_price id="random" record="TRUE" recordFile="scenario/siprice_random"/>
+         	<hypervisors>       
+           		<cluster id="AS_asia_1_pm_c1.xlarge"/>
+           		<cluster id="AS_asia_1_pm_c1.medium"/>
+           		<cluster id="AS_asia_1_pm_m1.medium"/>
+           		<cluster id="AS_asia_1_pm_m3.2xlarge"/>
+           		<cluster id="AS_asia_1_pm_m3.xlarge"/>
+           		<cluster id="AS_asia_1_pm_m2.4xlarge"/>
+           		<cluster id="AS_asia_1_pm_m2.2xlarge"/>
+           		<cluster id="AS_asia_1_pm_m2.xlarge"/>
+           		<cluster id="AS_asia_1_pm_m1.xlarge"/>
+           		<cluster id="AS_asia_1_pm_m1.large"/>
+           		<cluster id="AS_asia_1_pm_m1.small"/>
+           	</hypervisors>
+           	<instance_types>
+           		<instance id="c1.xlarge" vcpu="8" computing_unit="2.5" memory="7000" disk="1690">
+           			<on_demand_price price="0.730"/>
+           			
+           		</instance>
+           		<instance id="c1.medium" vcpu="2" computing_unit="2.5" memory="1700" disk="350">
+           			<on_demand_price price="0.183"/>
+           			
+           		</instance>
+           		<instance id="m3.2xlarge" vcpu="8" computing_unit="3.25" memory="30000" disk="-1">
+           			<on_demand_price price="1.400"/>
+           			
+           		</instance>
+           		<instance id="m3.xlarge" vcpu="4" computing_unit="3.25" memory="15000" disk="-1">
+           			<on_demand_price price="0.700"/>
+           			
+           		</instance>
+           		<instance id="m2.4xlarge" vcpu="8" computing_unit="3.25" memory="68400" disk="1690">
+           			<on_demand_price price="1.980"/>
+           			
+           		</instance>
+           		<instance id="m2.2xlarge" vcpu="4" computing_unit="3.25" memory="34200" disk="850">
+           			<on_demand_price price="0.990"/>
+           			
+           		</instance>
+           		<instance id="m2.xlarge" vcpu="2" computing_unit="3.25" memory="17100" disk="420">
+           			<on_demand_price price="0.495"/>
+           			
+           		</instance>
+           		<instance id="m1.xlarge" vcpu="4" computing_unit="2" memory="15000" disk="1690">
+           			<on_demand_price price="0.640"/>
+           			
+           		</instance>
+           		<instance id="m1.large" vcpu="2" computing_unit="2" memory="7500" disk="850">
+           			<on_demand_price price="0.320"/>
+           			
+           		</instance>
+           		<instance id="m1.medium" vcpu="2" computing_unit="1" memory="3750" disk="410">
+           			<on_demand_price price="0.160"/>
+           			
+           		</instance>
+           		<instance id="m1.small" vcpu="1" computing_unit="1" memory="1700" disk="160">
+           			<on_demand_price price="0.080"/>
+           			
+           		</instance>
+           	</instance_types>
+           	<data_transfer_prices>
+           		<internet>
+           			<input>
+           				<range price="0.0"/>
+           			</input>
+           			<output>
+           				<range begin="0" end="1" price="0.0"/>
+           				<range begin="1" end="10000" price="0.190"/>
+           				<range begin="10000" end="40000" price="0.150"/>
+           				<range begin="40000" end="100000" price="0.130"/>
+           				<range begin="100000" price="0.120"/>
+           			</output>
+           		</internet>
+           		<inter_zone>
+           			<input>
+           				<range price="0.01"/>
+           			</input>
+           			<output>
+           				<range price="0.01"/>
+           			</output>
+           		</inter_zone>
+           		<inter_region>
+           		    <input>
+           				<range price="0.0"/>
+           			</input>
+           			<output>
+           				<range price="0.09"/>
+           			</output>
+           		</inter_region>
+           		<intra_zone>
+           			<input>
+           				<range price="0.0"/>
+           			</input>
+           			<output>
+           				<range price="0.0"/>
+           			</output>
+           		</intra_zone>
+           	</data_transfer_prices>
+           	<storage_prices>
+           		<ebs_prices>
+           			<volume>
+           				<gbmonth price="0.11"/>
+           				<iorequest requests="1000000" price="0.11"/>
+           				<snapshot price="0.095"/>
+           			</volume>
+           		</ebs_prices>
+           		<s3_prices>
+           			<standard>
+           				<range begin="0" end="1000" price="0.095"/>
+           				<range begin="1000" end="49000" price="0.080"/>
+           				<range begin="49000" end="450000" price="0.070"/>
+           				<range begin="450000" end="500000" price="0.065"/>
+           				<range begin="500000" end="4000000" price="0.060"/>
+						<range begin="5000000" price="0.055"/>
+           			</standard>
+           			<reduced_redundancy>
+           				<range begin="0" end="1000" price="0.076"/>
+           				<range begin="1000" end="49000" price="0.064"/>
+           				<range begin="49000" end="450000" price="0.056"/>
+           				<range begin="450000" end="500000" price="0.052"/>
+           				<range begin="500000" end="4000000" price="0.048"/>
+						<range begin="5000000" price="0.037"/>
+           			</reduced_redundancy>
+           			<requests>
+           				<put requests="1000" price="0.005"/>
+           				<get requests="10000" price="0.004"/>
+           				<delete price="0.0"/>
+           			</requests>
+           			<data_transfer_prices>
+						<local_ec2>
+		           			<input>
+           						<range price="0.0"/>
+           					</input>
+           					<output>
+           						<range price="0.0"/>
+           					</output>
+           				</local_ec2>
+           				<remote_ec2>
+           					<input>
+           						<range price="0.0"/>
+           					</input>
+           					<output>
+           						<range price="0.090"/>
+           					</output>
+           				</remote_ec2>
+           				<internet>
+           					<input>
+           						<range price="0.0"/>
+           					</input>
+           					<output>
+           						<range begin="0" end="1" price="0.0"/>
+           						<range begin="1" end="10000" price="0.190"/>
+           						<range begin="10000" end="40000" price="0.150"/>
+           						<range begin="40000" end="100000" price="0.130"/>
+           						<range begin="350000" price="0.120"/>
+           					</output>
+           				</internet>
+           			</data_transfer_prices>
+           		</s3_prices>
+           	</storage_prices>
+         </cloud>
+	 <cloud  id="asia_2" as_id="AS_asia_2" 
+         compute_unit_power="4.4" vm_image_deployment_policy="AWS" 
+         max_vcpu_per_core="1" max_concurrent_boots="2" inter_boot_delay="18"
+         controller="asia_2_controler-1.asia_2.broker.simgrid.org"
+         spotmanager="asia_2_controler-2.asia_2.broker.simgrid.org"
+         billmanager="asia_2_controler-3.asia_2.broker.simgrid.org"
+         ebs_controller="asia_2_EBS-1.asia_2.broker.simgrid.org"
+         s3_controller="asia_2_S3-1.asia_2.broker.simgrid.org"
+         vm_pm_placement="onevmperhost">
+		<dynamic_price id="random" record="TRUE" recordFile="scenario/siprice_random"/>
+         	<hypervisors>       
+           		<cluster id="AS_asia_2_pm_c1.xlarge"/>
+           		<cluster id="AS_asia_2_pm_c1.medium"/>
+           		<cluster id="AS_asia_2_pm_m1.medium"/>
+           		<cluster id="AS_asia_2_pm_m3.2xlarge"/>
+           		<cluster id="AS_asia_2_pm_m3.xlarge"/>
+           		<cluster id="AS_asia_2_pm_m2.4xlarge"/>
+           		<cluster id="AS_asia_2_pm_m2.2xlarge"/>
+           		<cluster id="AS_asia_2_pm_m2.xlarge"/>
+           		<cluster id="AS_asia_2_pm_m1.xlarge"/>
+           		<cluster id="AS_asia_2_pm_m1.large"/>
+           		<cluster id="AS_asia_2_pm_m1.small"/>
+           	</hypervisors>
+           	<instance_types>
+           		<instance id="c1.xlarge" vcpu="8" computing_unit="2.5" memory="7000" disk="1690">
+           			<on_demand_price price="0.740"/>
+           			
+           		</instance>
+           		<instance id="c1.medium" vcpu="2" computing_unit="2.5" memory="1700" disk="350">
+           			<on_demand_price price="0.185"/>
+           			
+           		</instance>
+           		<instance id="m3.2xlarge" vcpu="8" computing_unit="3.25" memory="30000" disk="-1">
+           			<on_demand_price price="1.520"/>
+           			
+           		</instance>
+           		<instance id="m3.xlarge" vcpu="4" computing_unit="3.25" memory="15000" disk="-1">
+           			<on_demand_price price="0.760"/>
+           			
+           		</instance>           		
+           		<instance id="m2.4xlarge" vcpu="8" computing_unit="3.25" memory="68400" disk="1690">
+           			<on_demand_price price="2.020"/>
+           			
+           		</instance>
+           		<instance id="m2.2xlarge" vcpu="4" computing_unit="3.25" memory="34200" disk="850">
+           			<on_demand_price price="1.010"/>
+           			
+           		</instance>
+           		<instance id="m2.xlarge" vcpu="2" computing_unit="3.25" memory="17100" disk="420">
+           			<on_demand_price price="0.505"/>
+           			
+           		</instance>
+           		<instance id="m1.xlarge" vcpu="4" computing_unit="2" memory="15000" disk="1690">
+           			<on_demand_price price="0.700"/>
+           			
+           		</instance>
+           		<instance id="m1.large" vcpu="2" computing_unit="2" memory="7500" disk="850">
+           			<on_demand_price price="0.350"/>
+           			
+           		</instance>
+           		<instance id="m1.medium" vcpu="2" computing_unit="1" memory="3750" disk="410">
+           			<on_demand_price price="0.175"/>
+           			
+           		</instance>
+           		<instance id="m1.small" vcpu="1" computing_unit="1" memory="1700" disk="160">
+           			<on_demand_price price="0.088"/>
+           			
+           		</instance>
+           	</instance_types>
+           	<data_transfer_prices>
+           		<internet>
+           			<input>
+           				<range price="0.0"/>
+           			</input>
+           			<output>
+           				<range begin="0" end="1" price="0.0"/>
+           				<range begin="1" end="10000" price="0.201"/>
+           				<range begin="10000" end="40000" price="0.158"/>
+           				<range begin="40000" end="100000" price="0.137"/>
+           				<range begin="100000" price="0.127"/>
+           			</output>
+           		</internet>
+           		<inter_zone>
+           			<input>
+           				<range price="0.01"/>
+           			</input>
+           			<output>
+           				<range price="0.01"/>
+           			</output>
+           		</inter_zone>
+           		<inter_region>
+           		    <input>
+           				<range price="0.0"/>
+           			</input>
+           			<output>
+           				<range price="0.09"/>
+           			</output>
+           		</inter_region>
+           		<intra_zone>
+           			<input>
+           				<range price="0.0"/>
+           			</input>
+           			<output>
+           				<range price="0.0"/>
+           			</output>
+           		</intra_zone>
+           	</data_transfer_prices>
+           	<storage_prices>
+           		<ebs_prices>
+           			<volume>
+           				<gbmonth price="0.12"/>
+           				<iorequest requests="1000000" price="0.12"/>
+           				<snapshot price="0.10"/>
+           			</volume>
+           		</ebs_prices>
+           		<s3_prices>
+           			<standard>
+           				<range begin="0" end="1000" price="0.100"/>
+           				<range begin="1000" end="49000" price="0.085"/>
+           				<range begin="49000" end="450000" price="0.075"/>
+           				<range begin="450000" end="500000" price="0.070"/>
+           				<range begin="500000" end="4000000" price="0.065"/>
+						<range begin="5000000" price="0.060"/>
+           			</standard>
+           			<reduced_redundancy>
+           				<range begin="0" end="1000" price="0.080"/>
+           				<range begin="1000" end="49000" price="0.068"/>
+           				<range begin="49000" end="450000" price="0.060"/>
+           				<range begin="450000" end="500000" price="0.056"/>
+           				<range begin="500000" end="4000000" price="0.052"/>
+						<range begin="5000000" price="0.044"/>
+           			</reduced_redundancy>
+           			<requests>
+           				<put requests="1000" price="0.005"/>
+           				<get requests="10000" price="0.004"/>
+           				<delete price="0.0"/>
+           			</requests>
+           			<data_transfer_prices>
+						<local_ec2>
+		           			<input>
+           						<range price="0.0"/>
+           					</input>
+           					<output>
+           						<range price="0.0"/>
+           					</output>
+           				</local_ec2>
+           				<remote_ec2>
+           					<input>
+           						<range price="0.0"/>
+           					</input>
+           					<output>
+           						<range price="0.090"/>
+           					</output>
+           				</remote_ec2>
+           				<internet>
+           					<input>
+           						<range price="0.0"/>
+           					</input>
+           					<output>
+           						<range begin="0" end="1" price="0.0"/>
+           						<range begin="1" end="10000" price="0.201"/>
+           						<range begin="10000" end="40000" price="0.158"/>
+           						<range begin="40000" end="100000" price="0.137"/>
+           						<range begin="350000" price="0.127"/>
+           					</output>
+           				</internet>
+           			</data_transfer_prices>
+           		</s3_prices>
+           	</storage_prices>
+         </cloud>
+	 <cloud  id="asia_3" as_id="AS_asia_3" 
+         compute_unit_power="4.4" vm_image_deployment_policy="AWS" 
+         max_vcpu_per_core="1" max_concurrent_boots="2" inter_boot_delay="18"
+         controller="asia_3_controler-1.asia_3.broker.simgrid.org"
+         spotmanager="asia_3_controler-2.asia_3.broker.simgrid.org"
+         billmanager="asia_3_controler-3.asia_3.broker.simgrid.org"
+         ebs_controller="asia_3_EBS-1.asia_3.broker.simgrid.org"
+         s3_controller="asia_3_S3-1.asia_3.broker.simgrid.org"
+         vm_pm_placement="onevmperhost">
+		<dynamic_price id="random" record="TRUE" recordFile="scenario/siprice_random"/>
+         	<hypervisors>       
+           		<cluster id="AS_asia_3_pm_c1.xlarge"/>
+           		<cluster id="AS_asia_3_pm_c1.medium"/>
+           		<cluster id="AS_asia_3_pm_m1.medium"/>
+           		<cluster id="AS_asia_3_pm_m3.2xlarge"/>
+           		<cluster id="AS_asia_3_pm_m3.xlarge"/>
+           		<cluster id="AS_asia_3_pm_m2.4xlarge"/>
+           		<cluster id="AS_asia_3_pm_m2.2xlarge"/>
+           		<cluster id="AS_asia_3_pm_m2.xlarge"/>
+           		<cluster id="AS_asia_3_pm_m1.xlarge"/>
+           		<cluster id="AS_asia_3_pm_m1.large"/>
+           		<cluster id="AS_asia_3_pm_m1.small"/>
+           	</hypervisors>
+           	<instance_types>
+           		<instance id="c1.xlarge" vcpu="8" computing_unit="2.5" memory="7000" disk="1690">
+           			<on_demand_price price="0.730"/>
+           			
+           		</instance>
+           		<instance id="c1.medium" vcpu="2" computing_unit="2.5" memory="1700" disk="350">
+           			<on_demand_price price="0.183"/>
+           			
+           		</instance>
+           		<instance id="m3.2xlarge" vcpu="8" computing_unit="3.25" memory="30000" disk="-1">
+           			<on_demand_price price="1.400"/>
+           			
+           		</instance>
+           		<instance id="m3.xlarge" vcpu="4" computing_unit="3.25" memory="15000" disk="-1">
+           			<on_demand_price price="0.700"/>
+           			
+           		</instance>            		
+           		<instance id="m2.4xlarge" vcpu="8" computing_unit="3.25" memory="68400" disk="1690">
+           			<on_demand_price price="1.980"/>
+           			
+           		</instance>
+           		<instance id="m2.2xlarge" vcpu="4" computing_unit="3.25" memory="34200" disk="850">
+           			<on_demand_price price="0.990"/>
+           			
+           		</instance>
+           		<instance id="m2.xlarge" vcpu="2" computing_unit="3.25" memory="17100" disk="420">
+           			<on_demand_price price="0.495"/>
+           			
+           		</instance>
+           		<instance id="m1.xlarge" vcpu="4" computing_unit="2" memory="15000" disk="1690">
+           			<on_demand_price price="0.640"/>
+           			
+           		</instance>
+           		<instance id="m1.large" vcpu="2" computing_unit="2" memory="7500" disk="850">
+           			<on_demand_price price="0.320"/>
+           			
+           		</instance>
+           		<instance id="m1.medium" vcpu="2" computing_unit="1" memory="3750" disk="410">
+           			<on_demand_price price="0.160"/>
+           			
+           		</instance>
+           		<instance id="m1.small" vcpu="1" computing_unit="1" memory="1700" disk="160">
+           			<on_demand_price price="0.080"/>
+           			
+           		</instance>
+           	</instance_types>
+           	<data_transfer_prices>
+           		<internet>
+           			<input>
+           				<range price="0.0"/>
+           			</input>
+           			<output>
+           				<range begin="0" end="1" price="0.0"/>
+           				<range begin="1" end="10000" price="0.190"/>
+           				<range begin="10000" end="40000" price="0.170"/>
+           				<range begin="40000" end="100000" price="0.150"/>
+           				<range begin="100000" price="0.140"/>
+           			</output>
+           		</internet>
+           		<inter_zone>
+           			<input>
+           				<range price="0.01"/>
+           			</input>
+           			<output>
+           				<range price="0.01"/>
+           			</output>
+           		</inter_zone>
+           		<inter_region>
+           		    <input>
+           				<range price="0.0"/>
+           			</input>
+           			<output>
+           				<range price="0.14"/>
+           			</output>
+           		</inter_region>
+           		<intra_zone>
+           			<input>
+           				<range price="0.0"/>
+           			</input>
+           			<output>
+           				<range price="0.0"/>
+           			</output>
+           		</intra_zone>
+           	</data_transfer_prices>
+           	<storage_prices>
+           		<ebs_prices>
+           			<volume>
+           				<gbmonth price="0.11"/>
+           				<iorequest requests="1000000" price="0.11"/>
+           				<snapshot price="0.105"/>
+           			</volume>
+           		</ebs_prices>
+           		<s3_prices>
+           			<standard>
+           				<range begin="0" end="1000" price="0.105"/>
+           				<range begin="1000" end="49000" price="0.090"/>
+           				<range begin="49000" end="450000" price="0.075"/>
+           				<range begin="450000" end="500000" price="0.070"/>
+           				<range begin="500000" end="4000000" price="0.065"/>
+						<range begin="5000000" price="0.060"/>
+           			</standard>
+           			<reduced_redundancy>
+           				<range begin="0" end="1000" price="0.084"/>
+           				<range begin="1000" end="49000" price="0.072"/>
+           				<range begin="49000" end="450000" price="0.060"/>
+           				<range begin="450000" end="500000" price="0.056"/>
+           				<range begin="500000" end="4000000" price="0.052"/>
+						<range begin="5000000" price="0.047"/>
+           			</reduced_redundancy>
+           			<requests>
+           				<put requests="1000" price="0.0055"/>
+           				<get requests="10000" price="0.0044"/>
+           				<delete price="0.0"/>
+           			</requests>
+           			<data_transfer_prices>
+						<local_ec2>
+		           			<input>
+           						<range price="0.0"/>
+           					</input>
+           					<output>
+           						<range price="0.0"/>
+           					</output>
+           				</local_ec2>
+           				<remote_ec2>
+           					<input>
+           						<range price="0.0"/>
+           					</input>
+           					<output>
+           						<range price="0.140"/>
+           					</output>
+           				</remote_ec2>
+           				<internet>
+           					<input>
+           						<range price="0.0"/>
+           					</input>
+           					<output>
+           						<range begin="0" end="1" price="0.0"/>
+           						<range begin="1" end="10000" price="0.190"/>
+           						<range begin="10000" end="40000" price="0.170"/>
+           						<range begin="40000" end="100000" price="0.150"/>
+           						<range begin="350000" price="0.140"/>
+           					</output>
+           				</internet>
+           			</data_transfer_prices>
+           		</s3_prices>
+           	</storage_prices>
+         </cloud>
+	 <cloud  id="brasil_1" as_id="AS_brasil_1" 
+         compute_unit_power="4.4" vm_image_deployment_policy="AWS" 
+         max_vcpu_per_core="1" max_concurrent_boots="2" inter_boot_delay="18"
+         controller="brasil_1_controler-1.brasil_1.broker.simgrid.org"
+         spotmanager="brasil_1_controler-2.brasil_1.broker.simgrid.org"
+         billmanager="brasil_1_controler-3.brasil_1.broker.simgrid.org"
+         ebs_controller="brasil_1_EBS-1.brasil_1.broker.simgrid.org"
+         s3_controller="brasil_1_S3-1.brasil_1.broker.simgrid.org"
+         vm_pm_placement="onevmperhost">
+		<dynamic_price id="random" record="TRUE" recordFile="scenario/siprice_random"/>
+         	<hypervisors>       
+           		<cluster id="AS_brasil_1_pm_c1.xlarge"/>
+           		<cluster id="AS_brasil_1_pm_c1.medium"/>
+           		<cluster id="AS_brasil_1_pm_m1.medium"/>
+           		<cluster id="AS_brasil_1_pm_m3.2xlarge"/>
+           		<cluster id="AS_brasil_1_pm_m3.xlarge"/>
+           		<cluster id="AS_brasil_1_pm_m2.4xlarge"/>
+           		<cluster id="AS_brasil_1_pm_m2.2xlarge"/>
+           		<cluster id="AS_brasil_1_pm_m2.xlarge"/>
+           		<cluster id="AS_brasil_1_pm_m1.xlarge"/>
+           		<cluster id="AS_brasil_1_pm_m1.large"/>
+           		<cluster id="AS_brasil_1_pm_m1.small"/>
+           	</hypervisors>
+           	<instance_types>
+           		<instance id="c1.xlarge" vcpu="8" computing_unit="2.5" memory="7000" disk="1690">
+           			<on_demand_price price="0.800"/>
+           			
+           		</instance>
+           		<instance id="c1.medium" vcpu="2" computing_unit="2.5" memory="1700" disk="350">
+           			<on_demand_price price="0.200"/>
+           			
+           		</instance>
+           		<instance id="m3.2xlarge" vcpu="8" computing_unit="3.25" memory="30000" disk="-1">
+           			<on_demand_price price="1.360"/>
+           			
+           		</instance>
+           		<instance id="m3.xlarge" vcpu="4" computing_unit="3.25" memory="15000" disk="-1">
+           			<on_demand_price price="0.680"/>
+           			
+           		</instance>   
+           		<instance id="m2.4xlarge" vcpu="8" computing_unit="3.25" memory="68400" disk="1690">
+           			<on_demand_price price="2.160"/>
+           			
+           		</instance>
+           		<instance id="m2.2xlarge" vcpu="4" computing_unit="3.25" memory="34200" disk="850">
+           			<on_demand_price price="1.080"/>
+           			
+           		</instance>
+           		<instance id="m2.xlarge" vcpu="2" computing_unit="3.25" memory="17100" disk="420">
+           			<on_demand_price price="0.540"/>
+           			
+           		</instance>
+           		<instance id="m1.xlarge" vcpu="4" computing_unit="2" memory="15000" disk="1690">
+           			<on_demand_price price="0.640"/>
+           			
+           		</instance>
+           		<instance id="m1.large" vcpu="2" computing_unit="2" memory="7500" disk="850">
+           			<on_demand_price price="0.320"/>
+           			
+           		</instance>
+           		<instance id="m1.medium" vcpu="2" computing_unit="1" memory="3750" disk="410">
+           			<on_demand_price price="0.160"/>
+           			
+           		</instance>
+           		<instance id="m1.small" vcpu="1" computing_unit="1" memory="1700" disk="160">
+           			<on_demand_price price="0.080"/>
+           			
+           		</instance>
+           	</instance_types>
+           	<data_transfer_prices>
+           		<internet>
+           			<input>
+           				<range price="0.0"/>
+           			</input>
+           			<output>
+           				<range begin="0" end="1" price="0.0"/>
+           				<range begin="1" end="10000" price="0.25"/>
+           				<range begin="10000" end="40000" price="0.23"/>
+           				<range begin="40000" end="100000" price="0.21"/>
+           				<range begin="100000" price="0.19"/>
+           			</output>
+           		</internet>
+           		<inter_zone>
+           			<input>
+           				<range price="0.01"/>
+           			</input>
+           			<output>
+           				<range price="0.01"/>
+           			</output>
+           		</inter_zone>
+           		<inter_region>
+           		    <input>
+           				<range price="0.0"/>
+           			</input>
+           			<output>
+           				<range price="0.16"/>
+           			</output>
+           		</inter_region>
+           		<intra_zone>
+           			<input>
+           				<range price="0.0"/>
+           			</input>
+           			<output>
+           				<range price="0.0"/>
+           			</output>
+           		</intra_zone>
+           	</data_transfer_prices>
+           	<storage_prices>
+           		<ebs_prices>
+           			<volume>
+           				<gbmonth price="0.19"/>
+           				<iorequest requests="1000000" price="0.14"/>
+           				<snapshot price="0.13"/>
+           			</volume>
+           		</ebs_prices>
+           		<s3_prices>
+           			<standard>
+           				<range begin="0" end="1000" price="0.130"/>
+           				<range begin="1000" end="49000" price="0.110"/>
+           				<range begin="49000" end="450000" price="0.095"/>
+           				<range begin="450000" end="500000" price="0.090"/>
+           				<range begin="500000" end="4000000" price="0.080"/>
+						<range begin="5000000" price="0.075"/>
+           			</standard>
+           			<reduced_redundancy>
+           				<range begin="0" end="1000" price="0.104"/>
+           				<range begin="1000" end="49000" price="0.088"/>
+           				<range begin="49000" end="450000" price="0.076"/>
+           				<range begin="450000" end="500000" price="0.072"/>
+           				<range begin="500000" end="4000000" price="0.064"/>
+						<range begin="5000000" price="0.050"/>
+           			</reduced_redundancy>
+           			<requests>
+           				<put requests="1000" price="0.007"/>
+           				<get requests="10000" price="0.0056"/>
+           				<delete price="0.0"/>
+           			</requests>
+           			<data_transfer_prices>
+						<local_ec2>
+		           			<input>
+           						<range price="0.0"/>
+           					</input>
+           					<output>
+           						<range price="0.0"/>
+           					</output>
+           				</local_ec2>
+           				<remote_ec2>
+           					<input>
+           						<range price="0.0"/>
+           					</input>
+           					<output>
+           						<range price="0.160"/>
+           					</output>
+           				</remote_ec2>
+           				<internet>
+           					<input>
+           						<range price="0.0"/>
+           					</input>
+           					<output>
+           						<range begin="0" end="1" price="0.0"/>
+           						<range begin="1" end="10000" price="0.250"/>
+           						<range begin="10000" end="40000" price="0.230"/>
+           						<range begin="40000" end="100000" price="0.210"/>
+           						<range begin="350000" price="0.190"/>
+           					</output>
+           				</internet>
+           			</data_transfer_prices>
+           		</s3_prices>
+           	</storage_prices>
+         </cloud>
+         <client host="node-1.broker.broker.simgrid.org"/>
+</clouds> 

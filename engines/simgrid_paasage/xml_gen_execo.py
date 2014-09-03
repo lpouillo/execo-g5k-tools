@@ -1,4 +1,6 @@
-import xml.etree.cElementTree as ET
+import xml.etree.cElementTree as ET # that 'c' in "...etree.cElement..." 
+									# means the package is a C implementation; it runs 15-20 times faster 
+									# than equivalent python implementation
 import xml.dom.minidom as DOM
 import shutil
 import lxml.etree as le
@@ -61,7 +63,8 @@ def createInstance(parent, ty, qt):
     return tmp    
 
 
-def generateExp(comb, lis, rootSrc):
+def generateExp(comb_str, lis, rootSrc):
+	
     root=initXML()
     servParent=ET.SubElement(root, "services")
     servWeb=createService(servParent,"webService")
@@ -69,9 +72,7 @@ def generateExp(comb, lis, rootSrc):
     servDb=createService(servParent,"dbService")
 
     i=0
-    
-    print lis
-    exit()
+
 
     web = rootSrc.find("webService")
     if (web == None):
@@ -79,12 +80,10 @@ def generateExp(comb, lis, rootSrc):
         exit(1)
     for child1 in web.iter("region"):
         regionTmp=createRegion(servWeb, child1.get("name"))
-        for child2 in child1.iter("instance"):    
-            if (lis[i] != '0'):
-                createInstance(regionTmp, child2.get("type"), lis[i])
-                i+=1
+        for child2 in child1.iter("instance"):  
+            if (lis[child2.get("type")] != '0'):
+                createInstance(regionTmp, child2.get("type"), lis[child2.get("type")])
             else:
-                i+=1
                 continue
         if not regionTmp.getchildren():
             servWeb.remove(regionTmp)
@@ -99,11 +98,9 @@ def generateExp(comb, lis, rootSrc):
     for child1 in app.iter("region"):
         regionTmp=createRegion(servApp, child1.get("name"))
         for child2 in child1.iter("instance"):        
-            if (lis[i] != '0'):
-                createInstance(regionTmp, child2.get("type"), lis[i])
-                i+=1
-            else:
-                i+=1
+            if (lis[child2.get("type")] != '0'):
+                createInstance(regionTmp, child2.get("type"), lis[child2.get("type")])              
+            else:             
                 continue
         if not regionTmp.getchildren():
             servApp.remove(regionTmp)
@@ -120,11 +117,9 @@ def generateExp(comb, lis, rootSrc):
     for child1 in db.iter("region"):
         regionTmp=createRegion(servDb, child1.get("name"))
         for child2 in child1.iter("instance"):    
-            if (lis[i] != '0'):
-                createInstance(regionTmp, child2.get("type"), lis[i])
-                i+=1
+            if (lis[child2.get("type")] != '0'):
+                createInstance(regionTmp, child2.get("type"), lis[child2.get("type")])
             else:
-                i+=1
                 continue
         if not regionTmp.getchildren():    
             servDb.remove(regionTmp)
@@ -136,31 +131,42 @@ def generateExp(comb, lis, rootSrc):
     xml_string=ET.tostring(root, encoding='utf8', method='xml')
     xml = DOM.parseString(xml_string) 
     pretty_xml_as_string = xml.toprettyxml()
-    outFile=open("/home/Work/sgcbntier/paasage_demo/exp_"+comb, "w")
+    outFile=open("exp_"+comb_str+".xml", "w")
     outFile.write(pretty_xml_as_string)
 
+def create_dict(comb_list):
+	res_dict=dict()
+	length=len(comb_list)-1
+	for i in drange(0,length,2):
+		res_dict[comb_list[i]]=comb_list[i+1]
+	return res_dict
 
-
+def drange(start, stop, step):
+	r = start
+	while r < stop:
+		yield r
+		r += step
 
 if __name__ == "__main__":
 
-    tree = ET.parse("/home/Work/sgcbntier/paasage_demo/conf.xml")
-    rootSrc = tree.getroot()
+	tree = ET.parse("conf.xml")
+	rootSrc = tree.getroot()
 
-    usage = "usage: %prog [options] [args] "
-    parser = OptionParser(usage=usage)
+	usage = "usage: %prog [options] [args] "
+	parser = OptionParser(usage=usage)
 
-    parser.add_option("--cb", dest="comb", help="current combination")
+	parser.add_option("--cb", dest="comb", help="current combination")
 
-    (options, args) = parser.parse_args()
-
-    if not (options.comb):
-        parser.error("You must provide parameters for the experiment !")
-
-    comb_list=options.comb.split("_")
+	(options, args) = parser.parse_args()
+	
+	if not (options.comb):
+		parser.error("You must provide parameters for the experiment !")
 
 
-    generateExp(options.comb, comb_list, rootSrc) 
+	param_dict=create_dict(options.comb.split("_"))
+	
+
+	generateExp(options.comb, param_dict, rootSrc) 
     
 
 

@@ -1,0 +1,1100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE platform SYSTEM "http://simgrid.gforge.inria.fr/simgrid.dtd">
+<platform version="3">
+<AS id="AS_broker.simgrid.org" routing="Floyd">
+<AS id="AS_interne" routing="Floyd">
+<router id="usa_west_1"/>
+<router id="usa_west_2"/>
+<router id="usa_east_1"/>
+<router id="eu_1"/>
+<router id="asia_1"/>
+<router id="asia_2"/>
+<router id="asia_3"/>
+<router id="brasil_1"/>
+<router id="broker"/>
+<link bandwidth="1.25E10" id="usa_west_1_usa_west_2" latency="1.0E-4"/>
+<link bandwidth="1.25E10" id="usa_west_1_usa_east_1" latency="1.0E-4"/>
+<link bandwidth="1.25E10" id="usa_west_2_usa_east_1" latency="1.0E-4"/>
+<link bandwidth="1.25E10" id="usa_west_2_brasil_1" latency="1.0E-4"/>
+<link bandwidth="1.25E10" id="usa_west_1_asia_1" latency="1.0E-4"/>
+<link bandwidth="1.25E10" id="usa_west_2_asia_1" latency="1.0E-4"/>
+<link bandwidth="1.25E10" id="usa_west_1_asia_2" latency="1.0E-4"/>
+<link bandwidth="1.25E10" id="usa_west_2_asia_2" latency="1.0E-4"/>
+<link bandwidth="1.25E10" id="eu_1_asia_2" latency="1.0E-4"/>
+<link bandwidth="1.25E10" id="eu_1_asia_1" latency="1.0E-4"/>
+<link bandwidth="1.25E10" id="usa_east_1_eu_1" latency="1.0E-4"/>
+<link bandwidth="1.25E10" id="asia_2_asia_3" latency="1.0E-4"/>
+<link bandwidth="1.25E6" id="broker_eu_1" latency="1.0E-4"/>
+<route dst="usa_west_2" src="usa_west_1">
+<link_ctn id="usa_west_1_usa_west_2"/>
+</route>
+<route dst="usa_east_1" src="usa_west_1">
+<link_ctn id="usa_west_1_usa_east_1"/>
+</route>
+<route dst="usa_east_1" src="usa_west_2">
+<link_ctn id="usa_west_2_usa_east_1"/>
+</route>
+<route dst="brasil_1" src="usa_west_2">
+<link_ctn id="usa_west_2_brasil_1"/>
+</route>
+<route dst="asia_1" src="usa_west_1">
+<link_ctn id="usa_west_1_asia_1"/>
+</route>
+<route dst="asia_1" src="usa_west_2">
+<link_ctn id="usa_west_2_asia_1"/>
+</route>
+<route dst="asia_2" src="usa_west_1">
+<link_ctn id="usa_west_1_asia_2"/>
+</route>
+<route dst="asia_2" src="usa_west_2">
+<link_ctn id="usa_west_2_asia_2"/>
+</route>
+<route dst="asia_2" src="eu_1">
+<link_ctn id="eu_1_asia_2"/>
+</route>
+<route dst="asia_1" src="eu_1">
+<link_ctn id="eu_1_asia_1"/>
+</route>
+<route dst="eu_1" src="usa_east_1">
+<link_ctn id="usa_east_1_eu_1"/>
+</route>
+<route dst="asia_3" src="asia_2">
+<link_ctn id="asia_2_asia_3"/>
+</route>
+<route dst="eu_1" src="broker">
+<link_ctn id="broker_eu_1"/>
+</route>
+</AS>
+<AS id="AS_usa_west_1" routing="Floyd">
+<prop id="hierarchy" value="Region"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="4" id="AS_usa_west_1_pm_m3.xlarge" lat="1.0E-4" power="1.5354508E10" prefix="usa_west_1_pm_m3.xlarge-" radical="1-50" suffix=".usa_west_1.broker.simgrid.org">
+<prop id="memory" value="15000"/>
+<prop id="disk" value="-1"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_usa_west_1_pm_m3.xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="8" id="AS_usa_west_1_pm_m3.2xlarge" lat="1.0E-4" power="1.5354508E10" prefix="usa_west_1_pm_m3.2xlarge-" radical="1-50" suffix=".usa_west_1.broker.simgrid.org">
+<prop id="memory" value="30000"/>
+<prop id="disk" value="-1"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_usa_west_1_pm_m3.2xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="2" id="AS_usa_west_1_pm_m1.large" lat="1.0E-4" power="9.4489281E9" prefix="usa_west_1_pm_m1.large-" radical="1-50" suffix=".usa_west_1.broker.simgrid.org">
+<prop id="memory" value="7500"/>
+<prop id="disk" value="850"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_usa_west_1_pm_m1.large" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="4" id="AS_usa_west_1_pm_m1.xlarge" lat="1.0E-4" power="9.4489281E9" prefix="usa_west_1_pm_m1.xlarge-" radical="1-50" suffix=".usa_west_1.broker.simgrid.org">
+<prop id="memory" value="15000"/>
+<prop id="disk" value="1690"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_usa_west_1_pm_m1.xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="1" id="AS_usa_west_1_pm_m1.small" lat="1.0E-4" power="4.724464E9" prefix="usa_west_1_pm_m1.small-" radical="1-50" suffix=".usa_west_1.broker.simgrid.org">
+<prop id="memory" value="1700"/>
+<prop id="disk" value="160"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_usa_west_1_pm_m1.small" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="1" id="AS_usa_west_1_pm_m1.medium" lat="1.0E-4" power="9.4489281E9" prefix="usa_west_1_pm_m1.medium-" radical="1-50" suffix=".usa_west_1.broker.simgrid.org">
+<prop id="memory" value="3750"/>
+<prop id="disk" value="410"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_usa_west_1_pm_m1.medium" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="8" id="AS_usa_west_1_pm_c1.xlarge" lat="1.0E-4" power="1.181116E10" prefix="usa_west_1_pm_c1.xlarge-" radical="1-50" suffix=".usa_west_1.broker.simgrid.org">
+<prop id="memory" value="7000"/>
+<prop id="disk" value="1690"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_usa_west_1_pm_c1.xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="2" id="AS_usa_west_1_pm_c1.medium" lat="1.0E-4" power="1.181116E10" prefix="usa_west_1_pm_c1.medium-" radical="1-50" suffix=".usa_west_1.broker.simgrid.org">
+<prop id="memory" value="1700"/>
+<prop id="disk" value="350"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_usa_west_1_pm_c1.medium" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="8" id="AS_usa_west_1_pm_m2.4xlarge" lat="1.0E-4" power="1.5354508E10" prefix="usa_west_1_pm_m2.4xlarge-" radical="1-50" suffix=".usa_west_1.broker.simgrid.org">
+<prop id="memory" value="34200"/>
+<prop id="disk" value="850"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_usa_west_1_pm_m2.4xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="4" id="AS_usa_west_1_pm_m2.2xlarge" lat="1.0E-4" power="1.5354508E10" prefix="usa_west_1_pm_m2.2xlarge-" radical="1-50" suffix=".usa_west_1.broker.simgrid.org">
+<prop id="memory" value="34200"/>
+<prop id="disk" value="850"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_usa_west_1_pm_m2.2xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="2" id="AS_usa_west_1_pm_m2.xlarge" lat="1.0E-4" power="1.5354508E10" prefix="usa_west_1_pm_m2.xlarge-" radical="1-50" suffix=".usa_west_1.broker.simgrid.org">
+<prop id="memory" value="17100"/>
+<prop id="disk" value="420"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_usa_west_1_pm_m2.xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E11" bb_lat="1.0E-4" bw="1.25E11" id="AS_usa_west_1_S3" lat="1.0E-4" power="1.76E12" prefix="usa_west_1_S3-" radical="1-2" suffix=".usa_west_1.broker.simgrid.org"/>
+<link bandwidth="1.25E11" id="link_usa_west_1_S3" latency="1.0E-4"/>
+<cluster bb_bw="1.25E11" bb_lat="1.0E-4" bw="1.25E11" id="AS_usa_west_1_EBS" lat="1.0E-4" power="1.76E12" prefix="usa_west_1_EBS-" radical="1-2" suffix=".usa_west_1.broker.simgrid.org"/>
+<link bandwidth="1.25E11" id="link_usa_west_1_EBS" latency="1.0E-4"/>
+<cluster bb_bw="1.25E10" bb_lat="1.0E-4" bw="1.25E9" id="AS_usa_west_1_controler" lat="1.0E-4" power="1.76E12" prefix="usa_west_1_controler-" radical="1-3" suffix=".usa_west_1.broker.simgrid.org"/>
+<link bandwidth="1.25E10" id="link_usa_west_1_controler" latency="1.0E-4"/>
+<AS id="gw_AS_usa_west_1" routing="Full">
+<router id="gw_usa_west_1"/>
+</AS>
+<link bandwidth="1.25E10" id="link_gw_usa_west_1" latency="1.0E-4"/>
+<ASroute dst="gw_AS_usa_west_1" gw_dst="gw_usa_west_1" gw_src="usa_west_1_pm_m3.xlarge-AS_usa_west_1_pm_m3.xlarge_router.usa_west_1.broker.simgrid.org" src="AS_usa_west_1_pm_m3.xlarge" symmetrical="YES">
+<link_ctn id="link_usa_west_1_pm_m3.xlarge"/>
+<link_ctn id="link_gw_usa_west_1"/>
+</ASroute>
+<ASroute dst="gw_AS_usa_west_1" gw_dst="gw_usa_west_1" gw_src="usa_west_1_pm_m3.2xlarge-AS_usa_west_1_pm_m3.2xlarge_router.usa_west_1.broker.simgrid.org" src="AS_usa_west_1_pm_m3.2xlarge" symmetrical="YES">
+<link_ctn id="link_usa_west_1_pm_m3.2xlarge"/>
+<link_ctn id="link_gw_usa_west_1"/>
+</ASroute>
+<ASroute dst="gw_AS_usa_west_1" gw_dst="gw_usa_west_1" gw_src="usa_west_1_pm_m1.large-AS_usa_west_1_pm_m1.large_router.usa_west_1.broker.simgrid.org" src="AS_usa_west_1_pm_m1.large" symmetrical="YES">
+<link_ctn id="link_usa_west_1_pm_m1.large"/>
+<link_ctn id="link_gw_usa_west_1"/>
+</ASroute>
+<ASroute dst="gw_AS_usa_west_1" gw_dst="gw_usa_west_1" gw_src="usa_west_1_pm_m1.xlarge-AS_usa_west_1_pm_m1.xlarge_router.usa_west_1.broker.simgrid.org" src="AS_usa_west_1_pm_m1.xlarge" symmetrical="YES">
+<link_ctn id="link_usa_west_1_pm_m1.xlarge"/>
+<link_ctn id="link_gw_usa_west_1"/>
+</ASroute>
+<ASroute dst="gw_AS_usa_west_1" gw_dst="gw_usa_west_1" gw_src="usa_west_1_pm_m1.small-AS_usa_west_1_pm_m1.small_router.usa_west_1.broker.simgrid.org" src="AS_usa_west_1_pm_m1.small" symmetrical="YES">
+<link_ctn id="link_usa_west_1_pm_m1.small"/>
+<link_ctn id="link_gw_usa_west_1"/>
+</ASroute>
+<ASroute dst="gw_AS_usa_west_1" gw_dst="gw_usa_west_1" gw_src="usa_west_1_pm_m1.medium-AS_usa_west_1_pm_m1.medium_router.usa_west_1.broker.simgrid.org" src="AS_usa_west_1_pm_m1.medium" symmetrical="YES">
+<link_ctn id="link_usa_west_1_pm_m1.medium"/>
+<link_ctn id="link_gw_usa_west_1"/>
+</ASroute>
+<ASroute dst="gw_AS_usa_west_1" gw_dst="gw_usa_west_1" gw_src="usa_west_1_pm_c1.xlarge-AS_usa_west_1_pm_c1.xlarge_router.usa_west_1.broker.simgrid.org" src="AS_usa_west_1_pm_c1.xlarge" symmetrical="YES">
+<link_ctn id="link_usa_west_1_pm_c1.xlarge"/>
+<link_ctn id="link_gw_usa_west_1"/>
+</ASroute>
+<ASroute dst="gw_AS_usa_west_1" gw_dst="gw_usa_west_1" gw_src="usa_west_1_pm_c1.medium-AS_usa_west_1_pm_c1.medium_router.usa_west_1.broker.simgrid.org" src="AS_usa_west_1_pm_c1.medium" symmetrical="YES">
+<link_ctn id="link_usa_west_1_pm_c1.medium"/>
+<link_ctn id="link_gw_usa_west_1"/>
+</ASroute>
+<ASroute dst="gw_AS_usa_west_1" gw_dst="gw_usa_west_1" gw_src="usa_west_1_pm_m2.4xlarge-AS_usa_west_1_pm_m2.4xlarge_router.usa_west_1.broker.simgrid.org" src="AS_usa_west_1_pm_m2.4xlarge" symmetrical="YES">
+<link_ctn id="link_usa_west_1_pm_m2.4xlarge"/>
+<link_ctn id="link_gw_usa_west_1"/>
+</ASroute>
+<ASroute dst="gw_AS_usa_west_1" gw_dst="gw_usa_west_1" gw_src="usa_west_1_pm_m2.2xlarge-AS_usa_west_1_pm_m2.2xlarge_router.usa_west_1.broker.simgrid.org" src="AS_usa_west_1_pm_m2.2xlarge" symmetrical="YES">
+<link_ctn id="link_usa_west_1_pm_m2.2xlarge"/>
+<link_ctn id="link_gw_usa_west_1"/>
+</ASroute>
+<ASroute dst="gw_AS_usa_west_1" gw_dst="gw_usa_west_1" gw_src="usa_west_1_pm_m2.xlarge-AS_usa_west_1_pm_m2.xlarge_router.usa_west_1.broker.simgrid.org" src="AS_usa_west_1_pm_m2.xlarge" symmetrical="YES">
+<link_ctn id="link_usa_west_1_pm_m2.xlarge"/>
+<link_ctn id="link_gw_usa_west_1"/>
+</ASroute>
+<ASroute dst="gw_AS_usa_west_1" gw_dst="gw_usa_west_1" gw_src="usa_west_1_S3-AS_usa_west_1_S3_router.usa_west_1.broker.simgrid.org" src="AS_usa_west_1_S3" symmetrical="YES">
+<link_ctn id="link_usa_west_1_S3"/>
+<link_ctn id="link_gw_usa_west_1"/>
+</ASroute>
+<ASroute dst="gw_AS_usa_west_1" gw_dst="gw_usa_west_1" gw_src="usa_west_1_EBS-AS_usa_west_1_EBS_router.usa_west_1.broker.simgrid.org" src="AS_usa_west_1_EBS" symmetrical="YES">
+<link_ctn id="link_usa_west_1_EBS"/>
+<link_ctn id="link_gw_usa_west_1"/>
+</ASroute>
+<ASroute dst="gw_AS_usa_west_1" gw_dst="gw_usa_west_1" gw_src="usa_west_1_controler-AS_usa_west_1_controler_router.usa_west_1.broker.simgrid.org" src="AS_usa_west_1_controler" symmetrical="YES">
+<link_ctn id="link_usa_west_1_controler"/>
+<link_ctn id="link_gw_usa_west_1"/>
+</ASroute>
+</AS>
+<AS id="AS_usa_west_2" routing="Floyd">
+<prop id="hierarchy" value="Region"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="4" id="AS_usa_west_2_pm_m1.xlarge" lat="1.0E-4" power="9.4489281E9" prefix="usa_west_2_pm_m1.xlarge-" radical="1-50" suffix=".usa_west_2.broker.simgrid.org">
+<prop id="memory" value="15000"/>
+<prop id="disk" value="1690"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_usa_west_2_pm_m1.xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="4" id="AS_usa_west_2_pm_m3.xlarge" lat="1.0E-4" power="1.5354508E10" prefix="usa_west_2_pm_m3.xlarge-" radical="1-50" suffix=".usa_west_2.broker.simgrid.org">
+<prop id="memory" value="15000"/>
+<prop id="disk" value="-1"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_usa_west_2_pm_m3.xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="8" id="AS_usa_west_2_pm_m3.2xlarge" lat="1.0E-4" power="1.5354508E10" prefix="usa_west_2_pm_m3.2xlarge-" radical="1-50" suffix=".usa_west_2.broker.simgrid.org">
+<prop id="memory" value="30000"/>
+<prop id="disk" value="-1"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_usa_west_2_pm_m3.2xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="2" id="AS_usa_west_2_pm_m2.xlarge" lat="1.0E-4" power="1.5354508E10" prefix="usa_west_2_pm_m2.xlarge-" radical="1-50" suffix=".usa_west_2.broker.simgrid.org">
+<prop id="memory" value="17100"/>
+<prop id="disk" value="420"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_usa_west_2_pm_m2.xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="1" id="AS_usa_west_2_pm_m1.small" lat="1.0E-4" power="4.724464E9" prefix="usa_west_2_pm_m1.small-" radical="1-50" suffix=".usa_west_2.broker.simgrid.org">
+<prop id="memory" value="1700"/>
+<prop id="disk" value="160"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_usa_west_2_pm_m1.small" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="1" id="AS_usa_west_2_pm_m1.medium" lat="1.0E-4" power="9.4489281E9" prefix="usa_west_2_pm_m1.medium-" radical="1-50" suffix=".usa_west_2.broker.simgrid.org">
+<prop id="memory" value="3750"/>
+<prop id="disk" value="410"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_usa_west_2_pm_m1.medium" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="2" id="AS_usa_west_2_pm_m1.large" lat="1.0E-4" power="9.4489281E9" prefix="usa_west_2_pm_m1.large-" radical="1-50" suffix=".usa_west_2.broker.simgrid.org">
+<prop id="memory" value="7500"/>
+<prop id="disk" value="850"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_usa_west_2_pm_m1.large" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="8" id="AS_usa_west_2_pm_m2.4xlarge" lat="1.0E-4" power="1.5354508E10" prefix="usa_west_2_pm_m2.4xlarge-" radical="1-50" suffix=".usa_west_2.broker.simgrid.org">
+<prop id="memory" value="34200"/>
+<prop id="disk" value="850"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_usa_west_2_pm_m2.4xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="4" id="AS_usa_west_2_pm_m2.2xlarge" lat="1.0E-4" power="1.5354508E10" prefix="usa_west_2_pm_m2.2xlarge-" radical="1-50" suffix=".usa_west_2.broker.simgrid.org">
+<prop id="memory" value="34200"/>
+<prop id="disk" value="850"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_usa_west_2_pm_m2.2xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="8" id="AS_usa_west_2_pm_c1.xlarge" lat="1.0E-4" power="1.181116E10" prefix="usa_west_2_pm_c1.xlarge-" radical="1-50" suffix=".usa_west_2.broker.simgrid.org">
+<prop id="memory" value="7000"/>
+<prop id="disk" value="1690"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_usa_west_2_pm_c1.xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="2" id="AS_usa_west_2_pm_c1.medium" lat="1.0E-4" power="1.181116E10" prefix="usa_west_2_pm_c1.medium-" radical="1-50" suffix=".usa_west_2.broker.simgrid.org">
+<prop id="memory" value="1700"/>
+<prop id="disk" value="350"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_usa_west_2_pm_c1.medium" latency="1.0E-4"/>
+<cluster bb_bw="1.25E11" bb_lat="1.0E-4" bw="1.25E11" id="AS_usa_west_2_S3" lat="1.0E-4" power="1.76E12" prefix="usa_west_2_S3-" radical="1-2" suffix=".usa_west_2.broker.simgrid.org"/>
+<link bandwidth="1.25E11" id="link_usa_west_2_S3" latency="1.0E-4"/>
+<cluster bb_bw="1.25E11" bb_lat="1.0E-4" bw="1.25E11" id="AS_usa_west_2_EBS" lat="1.0E-4" power="1.76E12" prefix="usa_west_2_EBS-" radical="1-2" suffix=".usa_west_2.broker.simgrid.org"/>
+<link bandwidth="1.25E11" id="link_usa_west_2_EBS" latency="1.0E-4"/>
+<cluster bb_bw="1.25E10" bb_lat="1.0E-4" bw="1.25E9" id="AS_usa_west_2_controler" lat="1.0E-4" power="1.76E12" prefix="usa_west_2_controler-" radical="1-3" suffix=".usa_west_2.broker.simgrid.org"/>
+<link bandwidth="1.25E10" id="link_usa_west_2_controler" latency="1.0E-4"/>
+<AS id="gw_AS_usa_west_2" routing="Full">
+<router id="gw_usa_west_2"/>
+</AS>
+<link bandwidth="1.25E10" id="link_gw_usa_west_2" latency="1.0E-4"/>
+<ASroute dst="gw_AS_usa_west_2" gw_dst="gw_usa_west_2" gw_src="usa_west_2_pm_m1.xlarge-AS_usa_west_2_pm_m1.xlarge_router.usa_west_2.broker.simgrid.org" src="AS_usa_west_2_pm_m1.xlarge" symmetrical="YES">
+<link_ctn id="link_usa_west_2_pm_m1.xlarge"/>
+<link_ctn id="link_gw_usa_west_2"/>
+</ASroute>
+<ASroute dst="gw_AS_usa_west_2" gw_dst="gw_usa_west_2" gw_src="usa_west_2_pm_m3.xlarge-AS_usa_west_2_pm_m3.xlarge_router.usa_west_2.broker.simgrid.org" src="AS_usa_west_2_pm_m3.xlarge" symmetrical="YES">
+<link_ctn id="link_usa_west_2_pm_m3.xlarge"/>
+<link_ctn id="link_gw_usa_west_2"/>
+</ASroute>
+<ASroute dst="gw_AS_usa_west_2" gw_dst="gw_usa_west_2" gw_src="usa_west_2_pm_m3.2xlarge-AS_usa_west_2_pm_m3.2xlarge_router.usa_west_2.broker.simgrid.org" src="AS_usa_west_2_pm_m3.2xlarge" symmetrical="YES">
+<link_ctn id="link_usa_west_2_pm_m3.2xlarge"/>
+<link_ctn id="link_gw_usa_west_2"/>
+</ASroute>
+<ASroute dst="gw_AS_usa_west_2" gw_dst="gw_usa_west_2" gw_src="usa_west_2_pm_m2.xlarge-AS_usa_west_2_pm_m2.xlarge_router.usa_west_2.broker.simgrid.org" src="AS_usa_west_2_pm_m2.xlarge" symmetrical="YES">
+<link_ctn id="link_usa_west_2_pm_m2.xlarge"/>
+<link_ctn id="link_gw_usa_west_2"/>
+</ASroute>
+<ASroute dst="gw_AS_usa_west_2" gw_dst="gw_usa_west_2" gw_src="usa_west_2_pm_m1.small-AS_usa_west_2_pm_m1.small_router.usa_west_2.broker.simgrid.org" src="AS_usa_west_2_pm_m1.small" symmetrical="YES">
+<link_ctn id="link_usa_west_2_pm_m1.small"/>
+<link_ctn id="link_gw_usa_west_2"/>
+</ASroute>
+<ASroute dst="gw_AS_usa_west_2" gw_dst="gw_usa_west_2" gw_src="usa_west_2_pm_m1.medium-AS_usa_west_2_pm_m1.medium_router.usa_west_2.broker.simgrid.org" src="AS_usa_west_2_pm_m1.medium" symmetrical="YES">
+<link_ctn id="link_usa_west_2_pm_m1.medium"/>
+<link_ctn id="link_gw_usa_west_2"/>
+</ASroute>
+<ASroute dst="gw_AS_usa_west_2" gw_dst="gw_usa_west_2" gw_src="usa_west_2_pm_m1.large-AS_usa_west_2_pm_m1.large_router.usa_west_2.broker.simgrid.org" src="AS_usa_west_2_pm_m1.large" symmetrical="YES">
+<link_ctn id="link_usa_west_2_pm_m1.large"/>
+<link_ctn id="link_gw_usa_west_2"/>
+</ASroute>
+<ASroute dst="gw_AS_usa_west_2" gw_dst="gw_usa_west_2" gw_src="usa_west_2_pm_m2.4xlarge-AS_usa_west_2_pm_m2.4xlarge_router.usa_west_2.broker.simgrid.org" src="AS_usa_west_2_pm_m2.4xlarge" symmetrical="YES">
+<link_ctn id="link_usa_west_2_pm_m2.4xlarge"/>
+<link_ctn id="link_gw_usa_west_2"/>
+</ASroute>
+<ASroute dst="gw_AS_usa_west_2" gw_dst="gw_usa_west_2" gw_src="usa_west_2_pm_m2.2xlarge-AS_usa_west_2_pm_m2.2xlarge_router.usa_west_2.broker.simgrid.org" src="AS_usa_west_2_pm_m2.2xlarge" symmetrical="YES">
+<link_ctn id="link_usa_west_2_pm_m2.2xlarge"/>
+<link_ctn id="link_gw_usa_west_2"/>
+</ASroute>
+<ASroute dst="gw_AS_usa_west_2" gw_dst="gw_usa_west_2" gw_src="usa_west_2_pm_c1.xlarge-AS_usa_west_2_pm_c1.xlarge_router.usa_west_2.broker.simgrid.org" src="AS_usa_west_2_pm_c1.xlarge" symmetrical="YES">
+<link_ctn id="link_usa_west_2_pm_c1.xlarge"/>
+<link_ctn id="link_gw_usa_west_2"/>
+</ASroute>
+<ASroute dst="gw_AS_usa_west_2" gw_dst="gw_usa_west_2" gw_src="usa_west_2_pm_c1.medium-AS_usa_west_2_pm_c1.medium_router.usa_west_2.broker.simgrid.org" src="AS_usa_west_2_pm_c1.medium" symmetrical="YES">
+<link_ctn id="link_usa_west_2_pm_c1.medium"/>
+<link_ctn id="link_gw_usa_west_2"/>
+</ASroute>
+<ASroute dst="gw_AS_usa_west_2" gw_dst="gw_usa_west_2" gw_src="usa_west_2_S3-AS_usa_west_2_S3_router.usa_west_2.broker.simgrid.org" src="AS_usa_west_2_S3" symmetrical="YES">
+<link_ctn id="link_usa_west_2_S3"/>
+<link_ctn id="link_gw_usa_west_2"/>
+</ASroute>
+<ASroute dst="gw_AS_usa_west_2" gw_dst="gw_usa_west_2" gw_src="usa_west_2_EBS-AS_usa_west_2_EBS_router.usa_west_2.broker.simgrid.org" src="AS_usa_west_2_EBS" symmetrical="YES">
+<link_ctn id="link_usa_west_2_EBS"/>
+<link_ctn id="link_gw_usa_west_2"/>
+</ASroute>
+<ASroute dst="gw_AS_usa_west_2" gw_dst="gw_usa_west_2" gw_src="usa_west_2_controler-AS_usa_west_2_controler_router.usa_west_2.broker.simgrid.org" src="AS_usa_west_2_controler" symmetrical="YES">
+<link_ctn id="link_usa_west_2_controler"/>
+<link_ctn id="link_gw_usa_west_2"/>
+</ASroute>
+</AS>
+<AS id="AS_usa_east_1" routing="Floyd">
+<prop id="hierarchy" value="Region"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="2" id="AS_usa_east_1_pm_m1.large" lat="1.0E-4" power="9.4489281E9" prefix="usa_east_1_pm_m1.large-" radical="1-50" suffix=".usa_east_1.broker.simgrid.org">
+<prop id="memory" value="7500"/>
+<prop id="disk" value="850"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_usa_east_1_pm_m1.large" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="4" id="AS_usa_east_1_pm_m1.xlarge" lat="1.0E-4" power="9.4489281E9" prefix="usa_east_1_pm_m1.xlarge-" radical="1-50" suffix=".usa_east_1.broker.simgrid.org">
+<prop id="memory" value="15000"/>
+<prop id="disk" value="1690"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_usa_east_1_pm_m1.xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="1" id="AS_usa_east_1_pm_m1.small" lat="1.0E-4" power="4.724464E9" prefix="usa_east_1_pm_m1.small-" radical="1-50" suffix=".usa_east_1.broker.simgrid.org">
+<prop id="memory" value="1700"/>
+<prop id="disk" value="160"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_usa_east_1_pm_m1.small" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="1" id="AS_usa_east_1_pm_m1.medium" lat="1.0E-4" power="9.4489281E9" prefix="usa_east_1_pm_m1.medium-" radical="1-50" suffix=".usa_east_1.broker.simgrid.org">
+<prop id="memory" value="3750"/>
+<prop id="disk" value="410"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_usa_east_1_pm_m1.medium" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="2" id="AS_usa_east_1_pm_m2.xlarge" lat="1.0E-4" power="1.5354508E10" prefix="usa_east_1_pm_m2.xlarge-" radical="1-50" suffix=".usa_east_1.broker.simgrid.org">
+<prop id="memory" value="17100"/>
+<prop id="disk" value="420"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_usa_east_1_pm_m2.xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="4" id="AS_usa_east_1_pm_m2.2xlarge" lat="1.0E-4" power="1.5354508E10" prefix="usa_east_1_pm_m2.2xlarge-" radical="1-50" suffix=".usa_east_1.broker.simgrid.org">
+<prop id="memory" value="34200"/>
+<prop id="disk" value="850"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_usa_east_1_pm_m2.2xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="4" id="AS_usa_east_1_pm_m3.xlarge" lat="1.0E-4" power="1.5354508E10" prefix="usa_east_1_pm_m3.xlarge-" radical="1-50" suffix=".usa_east_1.broker.simgrid.org">
+<prop id="memory" value="15000"/>
+<prop id="disk" value="-1"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_usa_east_1_pm_m3.xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="8" id="AS_usa_east_1_pm_m3.2xlarge" lat="1.0E-4" power="1.5354508E10" prefix="usa_east_1_pm_m3.2xlarge-" radical="1-50" suffix=".usa_east_1.broker.simgrid.org">
+<prop id="memory" value="30000"/>
+<prop id="disk" value="-1"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_usa_east_1_pm_m3.2xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="8" id="AS_usa_east_1_pm_c1.xlarge" lat="1.0E-4" power="1.181116E10" prefix="usa_east_1_pm_c1.xlarge-" radical="1-50" suffix=".usa_east_1.broker.simgrid.org">
+<prop id="memory" value="7000"/>
+<prop id="disk" value="1690"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_usa_east_1_pm_c1.xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="2" id="AS_usa_east_1_pm_c1.medium" lat="1.0E-4" power="1.181116E10" prefix="usa_east_1_pm_c1.medium-" radical="1-50" suffix=".usa_east_1.broker.simgrid.org">
+<prop id="memory" value="1700"/>
+<prop id="disk" value="350"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_usa_east_1_pm_c1.medium" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="8" id="AS_usa_east_1_pm_m2.4xlarge" lat="1.0E-4" power="1.5354508E10" prefix="usa_east_1_pm_m2.4xlarge-" radical="1-50" suffix=".usa_east_1.broker.simgrid.org">
+<prop id="memory" value="34200"/>
+<prop id="disk" value="850"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_usa_east_1_pm_m2.4xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E11" bb_lat="1.0E-4" bw="1.25E11" id="AS_usa_east_1_S3" lat="1.0E-4" power="1.76E12" prefix="usa_east_1_S3-" radical="1-2" suffix=".usa_east_1.broker.simgrid.org"/>
+<link bandwidth="1.25E11" id="link_usa_east_1_S3" latency="1.0E-4"/>
+<cluster bb_bw="1.25E11" bb_lat="1.0E-4" bw="1.25E11" id="AS_usa_east_1_EBS" lat="1.0E-4" power="1.76E12" prefix="usa_east_1_EBS-" radical="1-2" suffix=".usa_east_1.broker.simgrid.org"/>
+<link bandwidth="1.25E11" id="link_usa_east_1_EBS" latency="1.0E-4"/>
+<cluster bb_bw="1.25E10" bb_lat="1.0E-4" bw="1.25E9" id="AS_usa_east_1_controler" lat="1.0E-4" power="1.76E12" prefix="usa_east_1_controler-" radical="1-3" suffix=".usa_east_1.broker.simgrid.org"/>
+<link bandwidth="1.25E10" id="link_usa_east_1_controler" latency="1.0E-4"/>
+<AS id="gw_AS_usa_east_1" routing="Full">
+<router id="gw_usa_east_1"/>
+</AS>
+<link bandwidth="1.25E10" id="link_gw_usa_east_1" latency="1.0E-4"/>
+<ASroute dst="gw_AS_usa_east_1" gw_dst="gw_usa_east_1" gw_src="usa_east_1_pm_m1.large-AS_usa_east_1_pm_m1.large_router.usa_east_1.broker.simgrid.org" src="AS_usa_east_1_pm_m1.large" symmetrical="YES">
+<link_ctn id="link_usa_east_1_pm_m1.large"/>
+<link_ctn id="link_gw_usa_east_1"/>
+</ASroute>
+<ASroute dst="gw_AS_usa_east_1" gw_dst="gw_usa_east_1" gw_src="usa_east_1_pm_m1.xlarge-AS_usa_east_1_pm_m1.xlarge_router.usa_east_1.broker.simgrid.org" src="AS_usa_east_1_pm_m1.xlarge" symmetrical="YES">
+<link_ctn id="link_usa_east_1_pm_m1.xlarge"/>
+<link_ctn id="link_gw_usa_east_1"/>
+</ASroute>
+<ASroute dst="gw_AS_usa_east_1" gw_dst="gw_usa_east_1" gw_src="usa_east_1_pm_m1.small-AS_usa_east_1_pm_m1.small_router.usa_east_1.broker.simgrid.org" src="AS_usa_east_1_pm_m1.small" symmetrical="YES">
+<link_ctn id="link_usa_east_1_pm_m1.small"/>
+<link_ctn id="link_gw_usa_east_1"/>
+</ASroute>
+<ASroute dst="gw_AS_usa_east_1" gw_dst="gw_usa_east_1" gw_src="usa_east_1_pm_m1.medium-AS_usa_east_1_pm_m1.medium_router.usa_east_1.broker.simgrid.org" src="AS_usa_east_1_pm_m1.medium" symmetrical="YES">
+<link_ctn id="link_usa_east_1_pm_m1.medium"/>
+<link_ctn id="link_gw_usa_east_1"/>
+</ASroute>
+<ASroute dst="gw_AS_usa_east_1" gw_dst="gw_usa_east_1" gw_src="usa_east_1_pm_m2.xlarge-AS_usa_east_1_pm_m2.xlarge_router.usa_east_1.broker.simgrid.org" src="AS_usa_east_1_pm_m2.xlarge" symmetrical="YES">
+<link_ctn id="link_usa_east_1_pm_m2.xlarge"/>
+<link_ctn id="link_gw_usa_east_1"/>
+</ASroute>
+<ASroute dst="gw_AS_usa_east_1" gw_dst="gw_usa_east_1" gw_src="usa_east_1_pm_m2.2xlarge-AS_usa_east_1_pm_m2.2xlarge_router.usa_east_1.broker.simgrid.org" src="AS_usa_east_1_pm_m2.2xlarge" symmetrical="YES">
+<link_ctn id="link_usa_east_1_pm_m2.2xlarge"/>
+<link_ctn id="link_gw_usa_east_1"/>
+</ASroute>
+<ASroute dst="gw_AS_usa_east_1" gw_dst="gw_usa_east_1" gw_src="usa_east_1_pm_m3.xlarge-AS_usa_east_1_pm_m3.xlarge_router.usa_east_1.broker.simgrid.org" src="AS_usa_east_1_pm_m3.xlarge" symmetrical="YES">
+<link_ctn id="link_usa_east_1_pm_m3.xlarge"/>
+<link_ctn id="link_gw_usa_east_1"/>
+</ASroute>
+<ASroute dst="gw_AS_usa_east_1" gw_dst="gw_usa_east_1" gw_src="usa_east_1_pm_m3.2xlarge-AS_usa_east_1_pm_m3.2xlarge_router.usa_east_1.broker.simgrid.org" src="AS_usa_east_1_pm_m3.2xlarge" symmetrical="YES">
+<link_ctn id="link_usa_east_1_pm_m3.2xlarge"/>
+<link_ctn id="link_gw_usa_east_1"/>
+</ASroute>
+<ASroute dst="gw_AS_usa_east_1" gw_dst="gw_usa_east_1" gw_src="usa_east_1_pm_c1.xlarge-AS_usa_east_1_pm_c1.xlarge_router.usa_east_1.broker.simgrid.org" src="AS_usa_east_1_pm_c1.xlarge" symmetrical="YES">
+<link_ctn id="link_usa_east_1_pm_c1.xlarge"/>
+<link_ctn id="link_gw_usa_east_1"/>
+</ASroute>
+<ASroute dst="gw_AS_usa_east_1" gw_dst="gw_usa_east_1" gw_src="usa_east_1_pm_c1.medium-AS_usa_east_1_pm_c1.medium_router.usa_east_1.broker.simgrid.org" src="AS_usa_east_1_pm_c1.medium" symmetrical="YES">
+<link_ctn id="link_usa_east_1_pm_c1.medium"/>
+<link_ctn id="link_gw_usa_east_1"/>
+</ASroute>
+<ASroute dst="gw_AS_usa_east_1" gw_dst="gw_usa_east_1" gw_src="usa_east_1_pm_m2.4xlarge-AS_usa_east_1_pm_m2.4xlarge_router.usa_east_1.broker.simgrid.org" src="AS_usa_east_1_pm_m2.4xlarge" symmetrical="YES">
+<link_ctn id="link_usa_east_1_pm_m2.4xlarge"/>
+<link_ctn id="link_gw_usa_east_1"/>
+</ASroute>
+<ASroute dst="gw_AS_usa_east_1" gw_dst="gw_usa_east_1" gw_src="usa_east_1_S3-AS_usa_east_1_S3_router.usa_east_1.broker.simgrid.org" src="AS_usa_east_1_S3" symmetrical="YES">
+<link_ctn id="link_usa_east_1_S3"/>
+<link_ctn id="link_gw_usa_east_1"/>
+</ASroute>
+<ASroute dst="gw_AS_usa_east_1" gw_dst="gw_usa_east_1" gw_src="usa_east_1_EBS-AS_usa_east_1_EBS_router.usa_east_1.broker.simgrid.org" src="AS_usa_east_1_EBS" symmetrical="YES">
+<link_ctn id="link_usa_east_1_EBS"/>
+<link_ctn id="link_gw_usa_east_1"/>
+</ASroute>
+<ASroute dst="gw_AS_usa_east_1" gw_dst="gw_usa_east_1" gw_src="usa_east_1_controler-AS_usa_east_1_controler_router.usa_east_1.broker.simgrid.org" src="AS_usa_east_1_controler" symmetrical="YES">
+<link_ctn id="link_usa_east_1_controler"/>
+<link_ctn id="link_gw_usa_east_1"/>
+</ASroute>
+</AS>
+<AS id="AS_eu_1" routing="Floyd">
+<prop id="hierarchy" value="Region"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="8" id="AS_eu_1_pm_m2.4xlarge" lat="1.0E-4" power="1.5354508E10" prefix="eu_1_pm_m2.4xlarge-" radical="1-50" suffix=".eu_1.broker.simgrid.org">
+<prop id="memory" value="34200"/>
+<prop id="disk" value="850"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_eu_1_pm_m2.4xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="4" id="AS_eu_1_pm_m2.2xlarge" lat="1.0E-4" power="1.5354508E10" prefix="eu_1_pm_m2.2xlarge-" radical="1-50" suffix=".eu_1.broker.simgrid.org">
+<prop id="memory" value="34200"/>
+<prop id="disk" value="850"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_eu_1_pm_m2.2xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="2" id="AS_eu_1_pm_m2.xlarge" lat="1.0E-4" power="1.5354508E10" prefix="eu_1_pm_m2.xlarge-" radical="1-50" suffix=".eu_1.broker.simgrid.org">
+<prop id="memory" value="17100"/>
+<prop id="disk" value="420"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_eu_1_pm_m2.xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="8" id="AS_eu_1_pm_m3.2xlarge" lat="1.0E-4" power="1.5354508E10" prefix="eu_1_pm_m3.2xlarge-" radical="1-50" suffix=".eu_1.broker.simgrid.org">
+<prop id="memory" value="30000"/>
+<prop id="disk" value="-1"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_eu_1_pm_m3.2xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="8" id="AS_eu_1_pm_c1.xlarge" lat="1.0E-4" power="1.181116E10" prefix="eu_1_pm_c1.xlarge-" radical="1-50" suffix=".eu_1.broker.simgrid.org">
+<prop id="memory" value="7000"/>
+<prop id="disk" value="1690"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_eu_1_pm_c1.xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="2" id="AS_eu_1_pm_c1.medium" lat="1.0E-4" power="1.181116E10" prefix="eu_1_pm_c1.medium-" radical="1-50" suffix=".eu_1.broker.simgrid.org">
+<prop id="memory" value="1700"/>
+<prop id="disk" value="350"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_eu_1_pm_c1.medium" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="1" id="AS_eu_1_pm_m1.small" lat="1.0E-4" power="4.724464E9" prefix="eu_1_pm_m1.small-" radical="1-50" suffix=".eu_1.broker.simgrid.org">
+<prop id="memory" value="1700"/>
+<prop id="disk" value="160"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_eu_1_pm_m1.small" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="4" id="AS_eu_1_pm_m3.xlarge" lat="1.0E-4" power="1.5354508E10" prefix="eu_1_pm_m3.xlarge-" radical="1-50" suffix=".eu_1.broker.simgrid.org">
+<prop id="memory" value="15000"/>
+<prop id="disk" value="-1"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_eu_1_pm_m3.xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="4" id="AS_eu_1_pm_m1.xlarge" lat="1.0E-4" power="9.4489281E9" prefix="eu_1_pm_m1.xlarge-" radical="1-50" suffix=".eu_1.broker.simgrid.org">
+<prop id="memory" value="15000"/>
+<prop id="disk" value="1690"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_eu_1_pm_m1.xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="2" id="AS_eu_1_pm_m1.large" lat="1.0E-4" power="9.4489281E9" prefix="eu_1_pm_m1.large-" radical="1-50" suffix=".eu_1.broker.simgrid.org">
+<prop id="memory" value="7500"/>
+<prop id="disk" value="850"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_eu_1_pm_m1.large" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="1" id="AS_eu_1_pm_m1.medium" lat="1.0E-4" power="9.4489281E9" prefix="eu_1_pm_m1.medium-" radical="1-50" suffix=".eu_1.broker.simgrid.org">
+<prop id="memory" value="3750"/>
+<prop id="disk" value="410"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_eu_1_pm_m1.medium" latency="1.0E-4"/>
+<cluster bb_bw="1.25E11" bb_lat="1.0E-4" bw="1.25E11" id="AS_eu_1_S3" lat="1.0E-4" power="1.76E12" prefix="eu_1_S3-" radical="1-2" suffix=".eu_1.broker.simgrid.org"/>
+<link bandwidth="1.25E11" id="link_eu_1_S3" latency="1.0E-4"/>
+<cluster bb_bw="1.25E11" bb_lat="1.0E-4" bw="1.25E11" id="AS_eu_1_EBS" lat="1.0E-4" power="1.76E12" prefix="eu_1_EBS-" radical="1-2" suffix=".eu_1.broker.simgrid.org"/>
+<link bandwidth="1.25E11" id="link_eu_1_EBS" latency="1.0E-4"/>
+<cluster bb_bw="1.25E10" bb_lat="1.0E-4" bw="1.25E9" id="AS_eu_1_controler" lat="1.0E-4" power="1.76E12" prefix="eu_1_controler-" radical="1-3" suffix=".eu_1.broker.simgrid.org"/>
+<link bandwidth="1.25E10" id="link_eu_1_controler" latency="1.0E-4"/>
+<AS id="gw_AS_eu_1" routing="Full">
+<router id="gw_eu_1"/>
+</AS>
+<link bandwidth="1.25E10" id="link_gw_eu_1" latency="1.0E-4"/>
+<ASroute dst="gw_AS_eu_1" gw_dst="gw_eu_1" gw_src="eu_1_pm_m2.4xlarge-AS_eu_1_pm_m2.4xlarge_router.eu_1.broker.simgrid.org" src="AS_eu_1_pm_m2.4xlarge" symmetrical="YES">
+<link_ctn id="link_eu_1_pm_m2.4xlarge"/>
+<link_ctn id="link_gw_eu_1"/>
+</ASroute>
+<ASroute dst="gw_AS_eu_1" gw_dst="gw_eu_1" gw_src="eu_1_pm_m2.2xlarge-AS_eu_1_pm_m2.2xlarge_router.eu_1.broker.simgrid.org" src="AS_eu_1_pm_m2.2xlarge" symmetrical="YES">
+<link_ctn id="link_eu_1_pm_m2.2xlarge"/>
+<link_ctn id="link_gw_eu_1"/>
+</ASroute>
+<ASroute dst="gw_AS_eu_1" gw_dst="gw_eu_1" gw_src="eu_1_pm_m2.xlarge-AS_eu_1_pm_m2.xlarge_router.eu_1.broker.simgrid.org" src="AS_eu_1_pm_m2.xlarge" symmetrical="YES">
+<link_ctn id="link_eu_1_pm_m2.xlarge"/>
+<link_ctn id="link_gw_eu_1"/>
+</ASroute>
+<ASroute dst="gw_AS_eu_1" gw_dst="gw_eu_1" gw_src="eu_1_pm_m3.2xlarge-AS_eu_1_pm_m3.2xlarge_router.eu_1.broker.simgrid.org" src="AS_eu_1_pm_m3.2xlarge" symmetrical="YES">
+<link_ctn id="link_eu_1_pm_m3.2xlarge"/>
+<link_ctn id="link_gw_eu_1"/>
+</ASroute>
+<ASroute dst="gw_AS_eu_1" gw_dst="gw_eu_1" gw_src="eu_1_pm_c1.xlarge-AS_eu_1_pm_c1.xlarge_router.eu_1.broker.simgrid.org" src="AS_eu_1_pm_c1.xlarge" symmetrical="YES">
+<link_ctn id="link_eu_1_pm_c1.xlarge"/>
+<link_ctn id="link_gw_eu_1"/>
+</ASroute>
+<ASroute dst="gw_AS_eu_1" gw_dst="gw_eu_1" gw_src="eu_1_pm_c1.medium-AS_eu_1_pm_c1.medium_router.eu_1.broker.simgrid.org" src="AS_eu_1_pm_c1.medium" symmetrical="YES">
+<link_ctn id="link_eu_1_pm_c1.medium"/>
+<link_ctn id="link_gw_eu_1"/>
+</ASroute>
+<ASroute dst="gw_AS_eu_1" gw_dst="gw_eu_1" gw_src="eu_1_pm_m1.small-AS_eu_1_pm_m1.small_router.eu_1.broker.simgrid.org" src="AS_eu_1_pm_m1.small" symmetrical="YES">
+<link_ctn id="link_eu_1_pm_m1.small"/>
+<link_ctn id="link_gw_eu_1"/>
+</ASroute>
+<ASroute dst="gw_AS_eu_1" gw_dst="gw_eu_1" gw_src="eu_1_pm_m3.xlarge-AS_eu_1_pm_m3.xlarge_router.eu_1.broker.simgrid.org" src="AS_eu_1_pm_m3.xlarge" symmetrical="YES">
+<link_ctn id="link_eu_1_pm_m3.xlarge"/>
+<link_ctn id="link_gw_eu_1"/>
+</ASroute>
+<ASroute dst="gw_AS_eu_1" gw_dst="gw_eu_1" gw_src="eu_1_pm_m1.xlarge-AS_eu_1_pm_m1.xlarge_router.eu_1.broker.simgrid.org" src="AS_eu_1_pm_m1.xlarge" symmetrical="YES">
+<link_ctn id="link_eu_1_pm_m1.xlarge"/>
+<link_ctn id="link_gw_eu_1"/>
+</ASroute>
+<ASroute dst="gw_AS_eu_1" gw_dst="gw_eu_1" gw_src="eu_1_pm_m1.large-AS_eu_1_pm_m1.large_router.eu_1.broker.simgrid.org" src="AS_eu_1_pm_m1.large" symmetrical="YES">
+<link_ctn id="link_eu_1_pm_m1.large"/>
+<link_ctn id="link_gw_eu_1"/>
+</ASroute>
+<ASroute dst="gw_AS_eu_1" gw_dst="gw_eu_1" gw_src="eu_1_pm_m1.medium-AS_eu_1_pm_m1.medium_router.eu_1.broker.simgrid.org" src="AS_eu_1_pm_m1.medium" symmetrical="YES">
+<link_ctn id="link_eu_1_pm_m1.medium"/>
+<link_ctn id="link_gw_eu_1"/>
+</ASroute>
+<ASroute dst="gw_AS_eu_1" gw_dst="gw_eu_1" gw_src="eu_1_S3-AS_eu_1_S3_router.eu_1.broker.simgrid.org" src="AS_eu_1_S3" symmetrical="YES">
+<link_ctn id="link_eu_1_S3"/>
+<link_ctn id="link_gw_eu_1"/>
+</ASroute>
+<ASroute dst="gw_AS_eu_1" gw_dst="gw_eu_1" gw_src="eu_1_EBS-AS_eu_1_EBS_router.eu_1.broker.simgrid.org" src="AS_eu_1_EBS" symmetrical="YES">
+<link_ctn id="link_eu_1_EBS"/>
+<link_ctn id="link_gw_eu_1"/>
+</ASroute>
+<ASroute dst="gw_AS_eu_1" gw_dst="gw_eu_1" gw_src="eu_1_controler-AS_eu_1_controler_router.eu_1.broker.simgrid.org" src="AS_eu_1_controler" symmetrical="YES">
+<link_ctn id="link_eu_1_controler"/>
+<link_ctn id="link_gw_eu_1"/>
+</ASroute>
+</AS>
+<AS id="AS_asia_1" routing="Floyd">
+<prop id="hierarchy" value="Region"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="1" id="AS_asia_1_pm_m1.small" lat="1.0E-4" power="4.724464E9" prefix="asia_1_pm_m1.small-" radical="1-50" suffix=".asia_1.broker.simgrid.org">
+<prop id="memory" value="1700"/>
+<prop id="disk" value="160"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_asia_1_pm_m1.small" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="2" id="AS_asia_1_pm_c1.medium" lat="1.0E-4" power="1.181116E10" prefix="asia_1_pm_c1.medium-" radical="1-50" suffix=".asia_1.broker.simgrid.org">
+<prop id="memory" value="1700"/>
+<prop id="disk" value="350"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_asia_1_pm_c1.medium" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="8" id="AS_asia_1_pm_c1.xlarge" lat="1.0E-4" power="1.181116E10" prefix="asia_1_pm_c1.xlarge-" radical="1-50" suffix=".asia_1.broker.simgrid.org">
+<prop id="memory" value="7000"/>
+<prop id="disk" value="1690"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_asia_1_pm_c1.xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="4" id="AS_asia_1_pm_m2.2xlarge" lat="1.0E-4" power="1.5354508E10" prefix="asia_1_pm_m2.2xlarge-" radical="1-50" suffix=".asia_1.broker.simgrid.org">
+<prop id="memory" value="34200"/>
+<prop id="disk" value="850"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_asia_1_pm_m2.2xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="8" id="AS_asia_1_pm_m2.4xlarge" lat="1.0E-4" power="1.5354508E10" prefix="asia_1_pm_m2.4xlarge-" radical="1-50" suffix=".asia_1.broker.simgrid.org">
+<prop id="memory" value="34200"/>
+<prop id="disk" value="850"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_asia_1_pm_m2.4xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="8" id="AS_asia_1_pm_m3.2xlarge" lat="1.0E-4" power="1.5354508E10" prefix="asia_1_pm_m3.2xlarge-" radical="1-50" suffix=".asia_1.broker.simgrid.org">
+<prop id="memory" value="30000"/>
+<prop id="disk" value="-1"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_asia_1_pm_m3.2xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="2" id="AS_asia_1_pm_m2.xlarge" lat="1.0E-4" power="1.5354508E10" prefix="asia_1_pm_m2.xlarge-" radical="1-50" suffix=".asia_1.broker.simgrid.org">
+<prop id="memory" value="17100"/>
+<prop id="disk" value="420"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_asia_1_pm_m2.xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="4" id="AS_asia_1_pm_m1.xlarge" lat="1.0E-4" power="9.4489281E9" prefix="asia_1_pm_m1.xlarge-" radical="1-50" suffix=".asia_1.broker.simgrid.org">
+<prop id="memory" value="15000"/>
+<prop id="disk" value="1690"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_asia_1_pm_m1.xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="4" id="AS_asia_1_pm_m3.xlarge" lat="1.0E-4" power="1.5354508E10" prefix="asia_1_pm_m3.xlarge-" radical="1-50" suffix=".asia_1.broker.simgrid.org">
+<prop id="memory" value="15000"/>
+<prop id="disk" value="-1"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_asia_1_pm_m3.xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="1" id="AS_asia_1_pm_m1.medium" lat="1.0E-4" power="9.4489281E9" prefix="asia_1_pm_m1.medium-" radical="1-50" suffix=".asia_1.broker.simgrid.org">
+<prop id="memory" value="3750"/>
+<prop id="disk" value="410"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_asia_1_pm_m1.medium" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="2" id="AS_asia_1_pm_m1.large" lat="1.0E-4" power="9.4489281E9" prefix="asia_1_pm_m1.large-" radical="1-50" suffix=".asia_1.broker.simgrid.org">
+<prop id="memory" value="7500"/>
+<prop id="disk" value="850"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_asia_1_pm_m1.large" latency="1.0E-4"/>
+<cluster bb_bw="1.25E11" bb_lat="1.0E-4" bw="1.25E11" id="AS_asia_1_S3" lat="1.0E-4" power="1.76E12" prefix="asia_1_S3-" radical="1-2" suffix=".asia_1.broker.simgrid.org"/>
+<link bandwidth="1.25E11" id="link_asia_1_S3" latency="1.0E-4"/>
+<cluster bb_bw="1.25E11" bb_lat="1.0E-4" bw="1.25E11" id="AS_asia_1_EBS" lat="1.0E-4" power="1.76E12" prefix="asia_1_EBS-" radical="1-2" suffix=".asia_1.broker.simgrid.org"/>
+<link bandwidth="1.25E11" id="link_asia_1_EBS" latency="1.0E-4"/>
+<cluster bb_bw="1.25E10" bb_lat="1.0E-4" bw="1.25E9" id="AS_asia_1_controler" lat="1.0E-4" power="1.76E12" prefix="asia_1_controler-" radical="1-3" suffix=".asia_1.broker.simgrid.org"/>
+<link bandwidth="1.25E10" id="link_asia_1_controler" latency="1.0E-4"/>
+<AS id="gw_AS_asia_1" routing="Full">
+<router id="gw_asia_1"/>
+</AS>
+<link bandwidth="1.25E10" id="link_gw_asia_1" latency="1.0E-4"/>
+<ASroute dst="gw_AS_asia_1" gw_dst="gw_asia_1" gw_src="asia_1_pm_m1.small-AS_asia_1_pm_m1.small_router.asia_1.broker.simgrid.org" src="AS_asia_1_pm_m1.small" symmetrical="YES">
+<link_ctn id="link_asia_1_pm_m1.small"/>
+<link_ctn id="link_gw_asia_1"/>
+</ASroute>
+<ASroute dst="gw_AS_asia_1" gw_dst="gw_asia_1" gw_src="asia_1_pm_c1.medium-AS_asia_1_pm_c1.medium_router.asia_1.broker.simgrid.org" src="AS_asia_1_pm_c1.medium" symmetrical="YES">
+<link_ctn id="link_asia_1_pm_c1.medium"/>
+<link_ctn id="link_gw_asia_1"/>
+</ASroute>
+<ASroute dst="gw_AS_asia_1" gw_dst="gw_asia_1" gw_src="asia_1_pm_c1.xlarge-AS_asia_1_pm_c1.xlarge_router.asia_1.broker.simgrid.org" src="AS_asia_1_pm_c1.xlarge" symmetrical="YES">
+<link_ctn id="link_asia_1_pm_c1.xlarge"/>
+<link_ctn id="link_gw_asia_1"/>
+</ASroute>
+<ASroute dst="gw_AS_asia_1" gw_dst="gw_asia_1" gw_src="asia_1_pm_m2.2xlarge-AS_asia_1_pm_m2.2xlarge_router.asia_1.broker.simgrid.org" src="AS_asia_1_pm_m2.2xlarge" symmetrical="YES">
+<link_ctn id="link_asia_1_pm_m2.2xlarge"/>
+<link_ctn id="link_gw_asia_1"/>
+</ASroute>
+<ASroute dst="gw_AS_asia_1" gw_dst="gw_asia_1" gw_src="asia_1_pm_m2.4xlarge-AS_asia_1_pm_m2.4xlarge_router.asia_1.broker.simgrid.org" src="AS_asia_1_pm_m2.4xlarge" symmetrical="YES">
+<link_ctn id="link_asia_1_pm_m2.4xlarge"/>
+<link_ctn id="link_gw_asia_1"/>
+</ASroute>
+<ASroute dst="gw_AS_asia_1" gw_dst="gw_asia_1" gw_src="asia_1_pm_m3.2xlarge-AS_asia_1_pm_m3.2xlarge_router.asia_1.broker.simgrid.org" src="AS_asia_1_pm_m3.2xlarge" symmetrical="YES">
+<link_ctn id="link_asia_1_pm_m3.2xlarge"/>
+<link_ctn id="link_gw_asia_1"/>
+</ASroute>
+<ASroute dst="gw_AS_asia_1" gw_dst="gw_asia_1" gw_src="asia_1_pm_m2.xlarge-AS_asia_1_pm_m2.xlarge_router.asia_1.broker.simgrid.org" src="AS_asia_1_pm_m2.xlarge" symmetrical="YES">
+<link_ctn id="link_asia_1_pm_m2.xlarge"/>
+<link_ctn id="link_gw_asia_1"/>
+</ASroute>
+<ASroute dst="gw_AS_asia_1" gw_dst="gw_asia_1" gw_src="asia_1_pm_m1.xlarge-AS_asia_1_pm_m1.xlarge_router.asia_1.broker.simgrid.org" src="AS_asia_1_pm_m1.xlarge" symmetrical="YES">
+<link_ctn id="link_asia_1_pm_m1.xlarge"/>
+<link_ctn id="link_gw_asia_1"/>
+</ASroute>
+<ASroute dst="gw_AS_asia_1" gw_dst="gw_asia_1" gw_src="asia_1_pm_m3.xlarge-AS_asia_1_pm_m3.xlarge_router.asia_1.broker.simgrid.org" src="AS_asia_1_pm_m3.xlarge" symmetrical="YES">
+<link_ctn id="link_asia_1_pm_m3.xlarge"/>
+<link_ctn id="link_gw_asia_1"/>
+</ASroute>
+<ASroute dst="gw_AS_asia_1" gw_dst="gw_asia_1" gw_src="asia_1_pm_m1.medium-AS_asia_1_pm_m1.medium_router.asia_1.broker.simgrid.org" src="AS_asia_1_pm_m1.medium" symmetrical="YES">
+<link_ctn id="link_asia_1_pm_m1.medium"/>
+<link_ctn id="link_gw_asia_1"/>
+</ASroute>
+<ASroute dst="gw_AS_asia_1" gw_dst="gw_asia_1" gw_src="asia_1_pm_m1.large-AS_asia_1_pm_m1.large_router.asia_1.broker.simgrid.org" src="AS_asia_1_pm_m1.large" symmetrical="YES">
+<link_ctn id="link_asia_1_pm_m1.large"/>
+<link_ctn id="link_gw_asia_1"/>
+</ASroute>
+<ASroute dst="gw_AS_asia_1" gw_dst="gw_asia_1" gw_src="asia_1_S3-AS_asia_1_S3_router.asia_1.broker.simgrid.org" src="AS_asia_1_S3" symmetrical="YES">
+<link_ctn id="link_asia_1_S3"/>
+<link_ctn id="link_gw_asia_1"/>
+</ASroute>
+<ASroute dst="gw_AS_asia_1" gw_dst="gw_asia_1" gw_src="asia_1_EBS-AS_asia_1_EBS_router.asia_1.broker.simgrid.org" src="AS_asia_1_EBS" symmetrical="YES">
+<link_ctn id="link_asia_1_EBS"/>
+<link_ctn id="link_gw_asia_1"/>
+</ASroute>
+<ASroute dst="gw_AS_asia_1" gw_dst="gw_asia_1" gw_src="asia_1_controler-AS_asia_1_controler_router.asia_1.broker.simgrid.org" src="AS_asia_1_controler" symmetrical="YES">
+<link_ctn id="link_asia_1_controler"/>
+<link_ctn id="link_gw_asia_1"/>
+</ASroute>
+</AS>
+<AS id="AS_asia_2" routing="Floyd">
+<prop id="hierarchy" value="Region"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="2" id="AS_asia_2_pm_c1.medium" lat="1.0E-4" power="1.181116E10" prefix="asia_2_pm_c1.medium-" radical="1-50" suffix=".asia_2.broker.simgrid.org">
+<prop id="memory" value="1700"/>
+<prop id="disk" value="350"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_asia_2_pm_c1.medium" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="8" id="AS_asia_2_pm_m2.4xlarge" lat="1.0E-4" power="1.5354508E10" prefix="asia_2_pm_m2.4xlarge-" radical="1-50" suffix=".asia_2.broker.simgrid.org">
+<prop id="memory" value="34200"/>
+<prop id="disk" value="850"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_asia_2_pm_m2.4xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="8" id="AS_asia_2_pm_c1.xlarge" lat="1.0E-4" power="1.181116E10" prefix="asia_2_pm_c1.xlarge-" radical="1-50" suffix=".asia_2.broker.simgrid.org">
+<prop id="memory" value="7000"/>
+<prop id="disk" value="1690"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_asia_2_pm_c1.xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="8" id="AS_asia_2_pm_m3.2xlarge" lat="1.0E-4" power="1.5354508E10" prefix="asia_2_pm_m3.2xlarge-" radical="1-50" suffix=".asia_2.broker.simgrid.org">
+<prop id="memory" value="30000"/>
+<prop id="disk" value="-1"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_asia_2_pm_m3.2xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="4" id="AS_asia_2_pm_m3.xlarge" lat="1.0E-4" power="1.5354508E10" prefix="asia_2_pm_m3.xlarge-" radical="1-50" suffix=".asia_2.broker.simgrid.org">
+<prop id="memory" value="15000"/>
+<prop id="disk" value="-1"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_asia_2_pm_m3.xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="4" id="AS_asia_2_pm_m2.2xlarge" lat="1.0E-4" power="1.5354508E10" prefix="asia_2_pm_m2.2xlarge-" radical="1-50" suffix=".asia_2.broker.simgrid.org">
+<prop id="memory" value="34200"/>
+<prop id="disk" value="850"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_asia_2_pm_m2.2xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="2" id="AS_asia_2_pm_m2.xlarge" lat="1.0E-4" power="1.5354508E10" prefix="asia_2_pm_m2.xlarge-" radical="1-50" suffix=".asia_2.broker.simgrid.org">
+<prop id="memory" value="17100"/>
+<prop id="disk" value="420"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_asia_2_pm_m2.xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="1" id="AS_asia_2_pm_m1.medium" lat="1.0E-4" power="9.4489281E9" prefix="asia_2_pm_m1.medium-" radical="1-50" suffix=".asia_2.broker.simgrid.org">
+<prop id="memory" value="3750"/>
+<prop id="disk" value="410"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_asia_2_pm_m1.medium" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="1" id="AS_asia_2_pm_m1.small" lat="1.0E-4" power="4.724464E9" prefix="asia_2_pm_m1.small-" radical="1-50" suffix=".asia_2.broker.simgrid.org">
+<prop id="memory" value="1700"/>
+<prop id="disk" value="160"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_asia_2_pm_m1.small" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="4" id="AS_asia_2_pm_m1.xlarge" lat="1.0E-4" power="9.4489281E9" prefix="asia_2_pm_m1.xlarge-" radical="1-50" suffix=".asia_2.broker.simgrid.org">
+<prop id="memory" value="15000"/>
+<prop id="disk" value="1690"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_asia_2_pm_m1.xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="2" id="AS_asia_2_pm_m1.large" lat="1.0E-4" power="9.4489281E9" prefix="asia_2_pm_m1.large-" radical="1-50" suffix=".asia_2.broker.simgrid.org">
+<prop id="memory" value="7500"/>
+<prop id="disk" value="850"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_asia_2_pm_m1.large" latency="1.0E-4"/>
+<cluster bb_bw="1.25E11" bb_lat="1.0E-4" bw="1.25E11" id="AS_asia_2_S3" lat="1.0E-4" power="1.76E12" prefix="asia_2_S3-" radical="1-2" suffix=".asia_2.broker.simgrid.org"/>
+<link bandwidth="1.25E11" id="link_asia_2_S3" latency="1.0E-4"/>
+<cluster bb_bw="1.25E11" bb_lat="1.0E-4" bw="1.25E11" id="AS_asia_2_EBS" lat="1.0E-4" power="1.76E12" prefix="asia_2_EBS-" radical="1-2" suffix=".asia_2.broker.simgrid.org"/>
+<link bandwidth="1.25E11" id="link_asia_2_EBS" latency="1.0E-4"/>
+<cluster bb_bw="1.25E10" bb_lat="1.0E-4" bw="1.25E9" id="AS_asia_2_controler" lat="1.0E-4" power="1.76E12" prefix="asia_2_controler-" radical="1-3" suffix=".asia_2.broker.simgrid.org"/>
+<link bandwidth="1.25E10" id="link_asia_2_controler" latency="1.0E-4"/>
+<AS id="gw_AS_asia_2" routing="Full">
+<router id="gw_asia_2"/>
+</AS>
+<link bandwidth="1.25E10" id="link_gw_asia_2" latency="1.0E-4"/>
+<ASroute dst="gw_AS_asia_2" gw_dst="gw_asia_2" gw_src="asia_2_pm_c1.medium-AS_asia_2_pm_c1.medium_router.asia_2.broker.simgrid.org" src="AS_asia_2_pm_c1.medium" symmetrical="YES">
+<link_ctn id="link_asia_2_pm_c1.medium"/>
+<link_ctn id="link_gw_asia_2"/>
+</ASroute>
+<ASroute dst="gw_AS_asia_2" gw_dst="gw_asia_2" gw_src="asia_2_pm_m2.4xlarge-AS_asia_2_pm_m2.4xlarge_router.asia_2.broker.simgrid.org" src="AS_asia_2_pm_m2.4xlarge" symmetrical="YES">
+<link_ctn id="link_asia_2_pm_m2.4xlarge"/>
+<link_ctn id="link_gw_asia_2"/>
+</ASroute>
+<ASroute dst="gw_AS_asia_2" gw_dst="gw_asia_2" gw_src="asia_2_pm_c1.xlarge-AS_asia_2_pm_c1.xlarge_router.asia_2.broker.simgrid.org" src="AS_asia_2_pm_c1.xlarge" symmetrical="YES">
+<link_ctn id="link_asia_2_pm_c1.xlarge"/>
+<link_ctn id="link_gw_asia_2"/>
+</ASroute>
+<ASroute dst="gw_AS_asia_2" gw_dst="gw_asia_2" gw_src="asia_2_pm_m3.2xlarge-AS_asia_2_pm_m3.2xlarge_router.asia_2.broker.simgrid.org" src="AS_asia_2_pm_m3.2xlarge" symmetrical="YES">
+<link_ctn id="link_asia_2_pm_m3.2xlarge"/>
+<link_ctn id="link_gw_asia_2"/>
+</ASroute>
+<ASroute dst="gw_AS_asia_2" gw_dst="gw_asia_2" gw_src="asia_2_pm_m3.xlarge-AS_asia_2_pm_m3.xlarge_router.asia_2.broker.simgrid.org" src="AS_asia_2_pm_m3.xlarge" symmetrical="YES">
+<link_ctn id="link_asia_2_pm_m3.xlarge"/>
+<link_ctn id="link_gw_asia_2"/>
+</ASroute>
+<ASroute dst="gw_AS_asia_2" gw_dst="gw_asia_2" gw_src="asia_2_pm_m2.2xlarge-AS_asia_2_pm_m2.2xlarge_router.asia_2.broker.simgrid.org" src="AS_asia_2_pm_m2.2xlarge" symmetrical="YES">
+<link_ctn id="link_asia_2_pm_m2.2xlarge"/>
+<link_ctn id="link_gw_asia_2"/>
+</ASroute>
+<ASroute dst="gw_AS_asia_2" gw_dst="gw_asia_2" gw_src="asia_2_pm_m2.xlarge-AS_asia_2_pm_m2.xlarge_router.asia_2.broker.simgrid.org" src="AS_asia_2_pm_m2.xlarge" symmetrical="YES">
+<link_ctn id="link_asia_2_pm_m2.xlarge"/>
+<link_ctn id="link_gw_asia_2"/>
+</ASroute>
+<ASroute dst="gw_AS_asia_2" gw_dst="gw_asia_2" gw_src="asia_2_pm_m1.medium-AS_asia_2_pm_m1.medium_router.asia_2.broker.simgrid.org" src="AS_asia_2_pm_m1.medium" symmetrical="YES">
+<link_ctn id="link_asia_2_pm_m1.medium"/>
+<link_ctn id="link_gw_asia_2"/>
+</ASroute>
+<ASroute dst="gw_AS_asia_2" gw_dst="gw_asia_2" gw_src="asia_2_pm_m1.small-AS_asia_2_pm_m1.small_router.asia_2.broker.simgrid.org" src="AS_asia_2_pm_m1.small" symmetrical="YES">
+<link_ctn id="link_asia_2_pm_m1.small"/>
+<link_ctn id="link_gw_asia_2"/>
+</ASroute>
+<ASroute dst="gw_AS_asia_2" gw_dst="gw_asia_2" gw_src="asia_2_pm_m1.xlarge-AS_asia_2_pm_m1.xlarge_router.asia_2.broker.simgrid.org" src="AS_asia_2_pm_m1.xlarge" symmetrical="YES">
+<link_ctn id="link_asia_2_pm_m1.xlarge"/>
+<link_ctn id="link_gw_asia_2"/>
+</ASroute>
+<ASroute dst="gw_AS_asia_2" gw_dst="gw_asia_2" gw_src="asia_2_pm_m1.large-AS_asia_2_pm_m1.large_router.asia_2.broker.simgrid.org" src="AS_asia_2_pm_m1.large" symmetrical="YES">
+<link_ctn id="link_asia_2_pm_m1.large"/>
+<link_ctn id="link_gw_asia_2"/>
+</ASroute>
+<ASroute dst="gw_AS_asia_2" gw_dst="gw_asia_2" gw_src="asia_2_S3-AS_asia_2_S3_router.asia_2.broker.simgrid.org" src="AS_asia_2_S3" symmetrical="YES">
+<link_ctn id="link_asia_2_S3"/>
+<link_ctn id="link_gw_asia_2"/>
+</ASroute>
+<ASroute dst="gw_AS_asia_2" gw_dst="gw_asia_2" gw_src="asia_2_EBS-AS_asia_2_EBS_router.asia_2.broker.simgrid.org" src="AS_asia_2_EBS" symmetrical="YES">
+<link_ctn id="link_asia_2_EBS"/>
+<link_ctn id="link_gw_asia_2"/>
+</ASroute>
+<ASroute dst="gw_AS_asia_2" gw_dst="gw_asia_2" gw_src="asia_2_controler-AS_asia_2_controler_router.asia_2.broker.simgrid.org" src="AS_asia_2_controler" symmetrical="YES">
+<link_ctn id="link_asia_2_controler"/>
+<link_ctn id="link_gw_asia_2"/>
+</ASroute>
+</AS>
+<AS id="AS_asia_3" routing="Floyd">
+<prop id="hierarchy" value="Region"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="8" id="AS_asia_3_pm_c1.xlarge" lat="1.0E-4" power="1.181116E10" prefix="asia_3_pm_c1.xlarge-" radical="1-50" suffix=".asia_3.broker.simgrid.org">
+<prop id="memory" value="7000"/>
+<prop id="disk" value="1690"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_asia_3_pm_c1.xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="2" id="AS_asia_3_pm_c1.medium" lat="1.0E-4" power="1.181116E10" prefix="asia_3_pm_c1.medium-" radical="1-50" suffix=".asia_3.broker.simgrid.org">
+<prop id="memory" value="1700"/>
+<prop id="disk" value="350"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_asia_3_pm_c1.medium" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="8" id="AS_asia_3_pm_m2.4xlarge" lat="1.0E-4" power="1.5354508E10" prefix="asia_3_pm_m2.4xlarge-" radical="1-50" suffix=".asia_3.broker.simgrid.org">
+<prop id="memory" value="34200"/>
+<prop id="disk" value="850"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_asia_3_pm_m2.4xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="4" id="AS_asia_3_pm_m2.2xlarge" lat="1.0E-4" power="1.5354508E10" prefix="asia_3_pm_m2.2xlarge-" radical="1-50" suffix=".asia_3.broker.simgrid.org">
+<prop id="memory" value="34200"/>
+<prop id="disk" value="850"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_asia_3_pm_m2.2xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="2" id="AS_asia_3_pm_m2.xlarge" lat="1.0E-4" power="1.5354508E10" prefix="asia_3_pm_m2.xlarge-" radical="1-50" suffix=".asia_3.broker.simgrid.org">
+<prop id="memory" value="17100"/>
+<prop id="disk" value="420"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_asia_3_pm_m2.xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="8" id="AS_asia_3_pm_m3.2xlarge" lat="1.0E-4" power="1.5354508E10" prefix="asia_3_pm_m3.2xlarge-" radical="1-50" suffix=".asia_3.broker.simgrid.org">
+<prop id="memory" value="30000"/>
+<prop id="disk" value="-1"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_asia_3_pm_m3.2xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="4" id="AS_asia_3_pm_m3.xlarge" lat="1.0E-4" power="1.5354508E10" prefix="asia_3_pm_m3.xlarge-" radical="1-50" suffix=".asia_3.broker.simgrid.org">
+<prop id="memory" value="15000"/>
+<prop id="disk" value="-1"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_asia_3_pm_m3.xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="4" id="AS_asia_3_pm_m1.xlarge" lat="1.0E-4" power="9.4489281E9" prefix="asia_3_pm_m1.xlarge-" radical="1-50" suffix=".asia_3.broker.simgrid.org">
+<prop id="memory" value="15000"/>
+<prop id="disk" value="1690"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_asia_3_pm_m1.xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="2" id="AS_asia_3_pm_m1.large" lat="1.0E-4" power="9.4489281E9" prefix="asia_3_pm_m1.large-" radical="1-50" suffix=".asia_3.broker.simgrid.org">
+<prop id="memory" value="7500"/>
+<prop id="disk" value="850"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_asia_3_pm_m1.large" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="1" id="AS_asia_3_pm_m1.medium" lat="1.0E-4" power="9.4489281E9" prefix="asia_3_pm_m1.medium-" radical="1-50" suffix=".asia_3.broker.simgrid.org">
+<prop id="memory" value="3750"/>
+<prop id="disk" value="410"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_asia_3_pm_m1.medium" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="1" id="AS_asia_3_pm_m1.small" lat="1.0E-4" power="4.724464E9" prefix="asia_3_pm_m1.small-" radical="1-50" suffix=".asia_3.broker.simgrid.org">
+<prop id="memory" value="1700"/>
+<prop id="disk" value="160"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_asia_3_pm_m1.small" latency="1.0E-4"/>
+<cluster bb_bw="1.25E11" bb_lat="1.0E-4" bw="1.25E11" id="AS_asia_3_S3" lat="1.0E-4" power="1.76E12" prefix="asia_3_S3-" radical="1-2" suffix=".asia_3.broker.simgrid.org"/>
+<link bandwidth="1.25E11" id="link_asia_3_S3" latency="1.0E-4"/>
+<cluster bb_bw="1.25E11" bb_lat="1.0E-4" bw="1.25E11" id="AS_asia_3_EBS" lat="1.0E-4" power="1.76E12" prefix="asia_3_EBS-" radical="1-2" suffix=".asia_3.broker.simgrid.org"/>
+<link bandwidth="1.25E11" id="link_asia_3_EBS" latency="1.0E-4"/>
+<cluster bb_bw="1.25E10" bb_lat="1.0E-4" bw="1.25E9" id="AS_asia_3_controler" lat="1.0E-4" power="1.76E12" prefix="asia_3_controler-" radical="1-3" suffix=".asia_3.broker.simgrid.org"/>
+<link bandwidth="1.25E10" id="link_asia_3_controler" latency="1.0E-4"/>
+<AS id="gw_AS_asia_3" routing="Full">
+<router id="gw_asia_3"/>
+</AS>
+<link bandwidth="1.25E10" id="link_gw_asia_3" latency="1.0E-4"/>
+<ASroute dst="gw_AS_asia_3" gw_dst="gw_asia_3" gw_src="asia_3_pm_c1.xlarge-AS_asia_3_pm_c1.xlarge_router.asia_3.broker.simgrid.org" src="AS_asia_3_pm_c1.xlarge" symmetrical="YES">
+<link_ctn id="link_asia_3_pm_c1.xlarge"/>
+<link_ctn id="link_gw_asia_3"/>
+</ASroute>
+<ASroute dst="gw_AS_asia_3" gw_dst="gw_asia_3" gw_src="asia_3_pm_c1.medium-AS_asia_3_pm_c1.medium_router.asia_3.broker.simgrid.org" src="AS_asia_3_pm_c1.medium" symmetrical="YES">
+<link_ctn id="link_asia_3_pm_c1.medium"/>
+<link_ctn id="link_gw_asia_3"/>
+</ASroute>
+<ASroute dst="gw_AS_asia_3" gw_dst="gw_asia_3" gw_src="asia_3_pm_m2.4xlarge-AS_asia_3_pm_m2.4xlarge_router.asia_3.broker.simgrid.org" src="AS_asia_3_pm_m2.4xlarge" symmetrical="YES">
+<link_ctn id="link_asia_3_pm_m2.4xlarge"/>
+<link_ctn id="link_gw_asia_3"/>
+</ASroute>
+<ASroute dst="gw_AS_asia_3" gw_dst="gw_asia_3" gw_src="asia_3_pm_m2.2xlarge-AS_asia_3_pm_m2.2xlarge_router.asia_3.broker.simgrid.org" src="AS_asia_3_pm_m2.2xlarge" symmetrical="YES">
+<link_ctn id="link_asia_3_pm_m2.2xlarge"/>
+<link_ctn id="link_gw_asia_3"/>
+</ASroute>
+<ASroute dst="gw_AS_asia_3" gw_dst="gw_asia_3" gw_src="asia_3_pm_m2.xlarge-AS_asia_3_pm_m2.xlarge_router.asia_3.broker.simgrid.org" src="AS_asia_3_pm_m2.xlarge" symmetrical="YES">
+<link_ctn id="link_asia_3_pm_m2.xlarge"/>
+<link_ctn id="link_gw_asia_3"/>
+</ASroute>
+<ASroute dst="gw_AS_asia_3" gw_dst="gw_asia_3" gw_src="asia_3_pm_m3.2xlarge-AS_asia_3_pm_m3.2xlarge_router.asia_3.broker.simgrid.org" src="AS_asia_3_pm_m3.2xlarge" symmetrical="YES">
+<link_ctn id="link_asia_3_pm_m3.2xlarge"/>
+<link_ctn id="link_gw_asia_3"/>
+</ASroute>
+<ASroute dst="gw_AS_asia_3" gw_dst="gw_asia_3" gw_src="asia_3_pm_m3.xlarge-AS_asia_3_pm_m3.xlarge_router.asia_3.broker.simgrid.org" src="AS_asia_3_pm_m3.xlarge" symmetrical="YES">
+<link_ctn id="link_asia_3_pm_m3.xlarge"/>
+<link_ctn id="link_gw_asia_3"/>
+</ASroute>
+<ASroute dst="gw_AS_asia_3" gw_dst="gw_asia_3" gw_src="asia_3_pm_m1.xlarge-AS_asia_3_pm_m1.xlarge_router.asia_3.broker.simgrid.org" src="AS_asia_3_pm_m1.xlarge" symmetrical="YES">
+<link_ctn id="link_asia_3_pm_m1.xlarge"/>
+<link_ctn id="link_gw_asia_3"/>
+</ASroute>
+<ASroute dst="gw_AS_asia_3" gw_dst="gw_asia_3" gw_src="asia_3_pm_m1.large-AS_asia_3_pm_m1.large_router.asia_3.broker.simgrid.org" src="AS_asia_3_pm_m1.large" symmetrical="YES">
+<link_ctn id="link_asia_3_pm_m1.large"/>
+<link_ctn id="link_gw_asia_3"/>
+</ASroute>
+<ASroute dst="gw_AS_asia_3" gw_dst="gw_asia_3" gw_src="asia_3_pm_m1.medium-AS_asia_3_pm_m1.medium_router.asia_3.broker.simgrid.org" src="AS_asia_3_pm_m1.medium" symmetrical="YES">
+<link_ctn id="link_asia_3_pm_m1.medium"/>
+<link_ctn id="link_gw_asia_3"/>
+</ASroute>
+<ASroute dst="gw_AS_asia_3" gw_dst="gw_asia_3" gw_src="asia_3_pm_m1.small-AS_asia_3_pm_m1.small_router.asia_3.broker.simgrid.org" src="AS_asia_3_pm_m1.small" symmetrical="YES">
+<link_ctn id="link_asia_3_pm_m1.small"/>
+<link_ctn id="link_gw_asia_3"/>
+</ASroute>
+<ASroute dst="gw_AS_asia_3" gw_dst="gw_asia_3" gw_src="asia_3_S3-AS_asia_3_S3_router.asia_3.broker.simgrid.org" src="AS_asia_3_S3" symmetrical="YES">
+<link_ctn id="link_asia_3_S3"/>
+<link_ctn id="link_gw_asia_3"/>
+</ASroute>
+<ASroute dst="gw_AS_asia_3" gw_dst="gw_asia_3" gw_src="asia_3_EBS-AS_asia_3_EBS_router.asia_3.broker.simgrid.org" src="AS_asia_3_EBS" symmetrical="YES">
+<link_ctn id="link_asia_3_EBS"/>
+<link_ctn id="link_gw_asia_3"/>
+</ASroute>
+<ASroute dst="gw_AS_asia_3" gw_dst="gw_asia_3" gw_src="asia_3_controler-AS_asia_3_controler_router.asia_3.broker.simgrid.org" src="AS_asia_3_controler" symmetrical="YES">
+<link_ctn id="link_asia_3_controler"/>
+<link_ctn id="link_gw_asia_3"/>
+</ASroute>
+</AS>
+<AS id="AS_brasil_1" routing="Floyd">
+<prop id="hierarchy" value="Region"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="1" id="AS_brasil_1_pm_m1.medium" lat="1.0E-4" power="9.4489281E9" prefix="brasil_1_pm_m1.medium-" radical="1-50" suffix=".brasil_1.broker.simgrid.org">
+<prop id="memory" value="3750"/>
+<prop id="disk" value="410"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_brasil_1_pm_m1.medium" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="8" id="AS_brasil_1_pm_c1.xlarge" lat="1.0E-4" power="1.181116E10" prefix="brasil_1_pm_c1.xlarge-" radical="1-50" suffix=".brasil_1.broker.simgrid.org">
+<prop id="memory" value="7000"/>
+<prop id="disk" value="1690"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_brasil_1_pm_c1.xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="1" id="AS_brasil_1_pm_m1.small" lat="1.0E-4" power="4.724464E9" prefix="brasil_1_pm_m1.small-" radical="1-50" suffix=".brasil_1.broker.simgrid.org">
+<prop id="memory" value="1700"/>
+<prop id="disk" value="160"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_brasil_1_pm_m1.small" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="2" id="AS_brasil_1_pm_m2.xlarge" lat="1.0E-4" power="1.5354508E10" prefix="brasil_1_pm_m2.xlarge-" radical="1-50" suffix=".brasil_1.broker.simgrid.org">
+<prop id="memory" value="17100"/>
+<prop id="disk" value="420"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_brasil_1_pm_m2.xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="4" id="AS_brasil_1_pm_m2.2xlarge" lat="1.0E-4" power="1.5354508E10" prefix="brasil_1_pm_m2.2xlarge-" radical="1-50" suffix=".brasil_1.broker.simgrid.org">
+<prop id="memory" value="34200"/>
+<prop id="disk" value="850"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_brasil_1_pm_m2.2xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="8" id="AS_brasil_1_pm_m2.4xlarge" lat="1.0E-4" power="1.5354508E10" prefix="brasil_1_pm_m2.4xlarge-" radical="1-50" suffix=".brasil_1.broker.simgrid.org">
+<prop id="memory" value="34200"/>
+<prop id="disk" value="850"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_brasil_1_pm_m2.4xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="2" id="AS_brasil_1_pm_c1.medium" lat="1.0E-4" power="1.181116E10" prefix="brasil_1_pm_c1.medium-" radical="1-50" suffix=".brasil_1.broker.simgrid.org">
+<prop id="memory" value="1700"/>
+<prop id="disk" value="350"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_brasil_1_pm_c1.medium" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="2" id="AS_brasil_1_pm_m1.large" lat="1.0E-4" power="9.4489281E9" prefix="brasil_1_pm_m1.large-" radical="1-50" suffix=".brasil_1.broker.simgrid.org">
+<prop id="memory" value="7500"/>
+<prop id="disk" value="850"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_brasil_1_pm_m1.large" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="4" id="AS_brasil_1_pm_m1.xlarge" lat="1.0E-4" power="9.4489281E9" prefix="brasil_1_pm_m1.xlarge-" radical="1-50" suffix=".brasil_1.broker.simgrid.org">
+<prop id="memory" value="15000"/>
+<prop id="disk" value="1690"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_brasil_1_pm_m1.xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="4" id="AS_brasil_1_pm_m3.xlarge" lat="1.0E-4" power="1.5354508E10" prefix="brasil_1_pm_m3.xlarge-" radical="1-50" suffix=".brasil_1.broker.simgrid.org">
+<prop id="memory" value="15000"/>
+<prop id="disk" value="-1"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_brasil_1_pm_m3.xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E9" bb_lat="1.0E-4" bw="1.25E8" core="8" id="AS_brasil_1_pm_m3.2xlarge" lat="1.0E-4" power="1.5354508E10" prefix="brasil_1_pm_m3.2xlarge-" radical="1-50" suffix=".brasil_1.broker.simgrid.org">
+<prop id="memory" value="30000"/>
+<prop id="disk" value="-1"/>
+</cluster>
+<link bandwidth="1.25E9" id="link_brasil_1_pm_m3.2xlarge" latency="1.0E-4"/>
+<cluster bb_bw="1.25E11" bb_lat="1.0E-4" bw="1.25E11" id="AS_brasil_1_S3" lat="1.0E-4" power="1.76E12" prefix="brasil_1_S3-" radical="1-2" suffix=".brasil_1.broker.simgrid.org"/>
+<link bandwidth="1.25E11" id="link_brasil_1_S3" latency="1.0E-4"/>
+<cluster bb_bw="1.25E11" bb_lat="1.0E-4" bw="1.25E11" id="AS_brasil_1_EBS" lat="1.0E-4" power="1.76E12" prefix="brasil_1_EBS-" radical="1-2" suffix=".brasil_1.broker.simgrid.org"/>
+<link bandwidth="1.25E11" id="link_brasil_1_EBS" latency="1.0E-4"/>
+<cluster bb_bw="1.25E10" bb_lat="1.0E-4" bw="1.25E9" id="AS_brasil_1_controler" lat="1.0E-4" power="1.76E12" prefix="brasil_1_controler-" radical="1-3" suffix=".brasil_1.broker.simgrid.org"/>
+<link bandwidth="1.25E10" id="link_brasil_1_controler" latency="1.0E-4"/>
+<AS id="gw_AS_brasil_1" routing="Full">
+<router id="gw_brasil_1"/>
+</AS>
+<link bandwidth="1.25E10" id="link_gw_brasil_1" latency="1.0E-4"/>
+<ASroute dst="gw_AS_brasil_1" gw_dst="gw_brasil_1" gw_src="brasil_1_pm_m1.medium-AS_brasil_1_pm_m1.medium_router.brasil_1.broker.simgrid.org" src="AS_brasil_1_pm_m1.medium" symmetrical="YES">
+<link_ctn id="link_brasil_1_pm_m1.medium"/>
+<link_ctn id="link_gw_brasil_1"/>
+</ASroute>
+<ASroute dst="gw_AS_brasil_1" gw_dst="gw_brasil_1" gw_src="brasil_1_pm_c1.xlarge-AS_brasil_1_pm_c1.xlarge_router.brasil_1.broker.simgrid.org" src="AS_brasil_1_pm_c1.xlarge" symmetrical="YES">
+<link_ctn id="link_brasil_1_pm_c1.xlarge"/>
+<link_ctn id="link_gw_brasil_1"/>
+</ASroute>
+<ASroute dst="gw_AS_brasil_1" gw_dst="gw_brasil_1" gw_src="brasil_1_pm_m1.small-AS_brasil_1_pm_m1.small_router.brasil_1.broker.simgrid.org" src="AS_brasil_1_pm_m1.small" symmetrical="YES">
+<link_ctn id="link_brasil_1_pm_m1.small"/>
+<link_ctn id="link_gw_brasil_1"/>
+</ASroute>
+<ASroute dst="gw_AS_brasil_1" gw_dst="gw_brasil_1" gw_src="brasil_1_pm_m2.xlarge-AS_brasil_1_pm_m2.xlarge_router.brasil_1.broker.simgrid.org" src="AS_brasil_1_pm_m2.xlarge" symmetrical="YES">
+<link_ctn id="link_brasil_1_pm_m2.xlarge"/>
+<link_ctn id="link_gw_brasil_1"/>
+</ASroute>
+<ASroute dst="gw_AS_brasil_1" gw_dst="gw_brasil_1" gw_src="brasil_1_pm_m2.2xlarge-AS_brasil_1_pm_m2.2xlarge_router.brasil_1.broker.simgrid.org" src="AS_brasil_1_pm_m2.2xlarge" symmetrical="YES">
+<link_ctn id="link_brasil_1_pm_m2.2xlarge"/>
+<link_ctn id="link_gw_brasil_1"/>
+</ASroute>
+<ASroute dst="gw_AS_brasil_1" gw_dst="gw_brasil_1" gw_src="brasil_1_pm_m2.4xlarge-AS_brasil_1_pm_m2.4xlarge_router.brasil_1.broker.simgrid.org" src="AS_brasil_1_pm_m2.4xlarge" symmetrical="YES">
+<link_ctn id="link_brasil_1_pm_m2.4xlarge"/>
+<link_ctn id="link_gw_brasil_1"/>
+</ASroute>
+<ASroute dst="gw_AS_brasil_1" gw_dst="gw_brasil_1" gw_src="brasil_1_pm_c1.medium-AS_brasil_1_pm_c1.medium_router.brasil_1.broker.simgrid.org" src="AS_brasil_1_pm_c1.medium" symmetrical="YES">
+<link_ctn id="link_brasil_1_pm_c1.medium"/>
+<link_ctn id="link_gw_brasil_1"/>
+</ASroute>
+<ASroute dst="gw_AS_brasil_1" gw_dst="gw_brasil_1" gw_src="brasil_1_pm_m1.large-AS_brasil_1_pm_m1.large_router.brasil_1.broker.simgrid.org" src="AS_brasil_1_pm_m1.large" symmetrical="YES">
+<link_ctn id="link_brasil_1_pm_m1.large"/>
+<link_ctn id="link_gw_brasil_1"/>
+</ASroute>
+<ASroute dst="gw_AS_brasil_1" gw_dst="gw_brasil_1" gw_src="brasil_1_pm_m1.xlarge-AS_brasil_1_pm_m1.xlarge_router.brasil_1.broker.simgrid.org" src="AS_brasil_1_pm_m1.xlarge" symmetrical="YES">
+<link_ctn id="link_brasil_1_pm_m1.xlarge"/>
+<link_ctn id="link_gw_brasil_1"/>
+</ASroute>
+<ASroute dst="gw_AS_brasil_1" gw_dst="gw_brasil_1" gw_src="brasil_1_pm_m3.xlarge-AS_brasil_1_pm_m3.xlarge_router.brasil_1.broker.simgrid.org" src="AS_brasil_1_pm_m3.xlarge" symmetrical="YES">
+<link_ctn id="link_brasil_1_pm_m3.xlarge"/>
+<link_ctn id="link_gw_brasil_1"/>
+</ASroute>
+<ASroute dst="gw_AS_brasil_1" gw_dst="gw_brasil_1" gw_src="brasil_1_pm_m3.2xlarge-AS_brasil_1_pm_m3.2xlarge_router.brasil_1.broker.simgrid.org" src="AS_brasil_1_pm_m3.2xlarge" symmetrical="YES">
+<link_ctn id="link_brasil_1_pm_m3.2xlarge"/>
+<link_ctn id="link_gw_brasil_1"/>
+</ASroute>
+<ASroute dst="gw_AS_brasil_1" gw_dst="gw_brasil_1" gw_src="brasil_1_S3-AS_brasil_1_S3_router.brasil_1.broker.simgrid.org" src="AS_brasil_1_S3" symmetrical="YES">
+<link_ctn id="link_brasil_1_S3"/>
+<link_ctn id="link_gw_brasil_1"/>
+</ASroute>
+<ASroute dst="gw_AS_brasil_1" gw_dst="gw_brasil_1" gw_src="brasil_1_EBS-AS_brasil_1_EBS_router.brasil_1.broker.simgrid.org" src="AS_brasil_1_EBS" symmetrical="YES">
+<link_ctn id="link_brasil_1_EBS"/>
+<link_ctn id="link_gw_brasil_1"/>
+</ASroute>
+<ASroute dst="gw_AS_brasil_1" gw_dst="gw_brasil_1" gw_src="brasil_1_controler-AS_brasil_1_controler_router.brasil_1.broker.simgrid.org" src="AS_brasil_1_controler" symmetrical="YES">
+<link_ctn id="link_brasil_1_controler"/>
+<link_ctn id="link_gw_brasil_1"/>
+</ASroute>
+</AS>
+<AS id="AS_broker" routing="Floyd">
+<cluster bb_bw="1.25E7" bb_lat="1.0E-4" bw="1.25E7" id="AS_node" lat="1.0E-4" power="1.2345678E9" prefix="node-" radical="1-2" suffix=".broker.broker.simgrid.org"/>
+<link bandwidth="1.25E7" id="link_node" latency="1.0E-4"/>
+<AS id="gw_AS_broker" routing="Full">
+<router id="gw_broker"/>
+</AS>
+<link bandwidth="1.25E7" id="link_gw_broker" latency="1.0E-4"/>
+<ASroute dst="gw_AS_broker" gw_dst="gw_broker" gw_src="node-AS_node_router.broker.broker.simgrid.org" src="AS_node" symmetrical="YES">
+<link_ctn id="link_node"/>
+<link_ctn id="link_gw_broker"/>
+</ASroute>
+</AS>
+<ASroute dst="AS_interne" gw_dst="usa_west_1" gw_src="gw_usa_west_1" src="AS_usa_west_1" symmetrical="YES">
+<link_ctn id="link_gw_usa_west_1"/>
+</ASroute>
+<ASroute dst="AS_interne" gw_dst="usa_west_2" gw_src="gw_usa_west_2" src="AS_usa_west_2" symmetrical="YES">
+<link_ctn id="link_gw_usa_west_2"/>
+</ASroute>
+<ASroute dst="AS_interne" gw_dst="usa_east_1" gw_src="gw_usa_east_1" src="AS_usa_east_1" symmetrical="YES">
+<link_ctn id="link_gw_usa_east_1"/>
+</ASroute>
+<ASroute dst="AS_interne" gw_dst="eu_1" gw_src="gw_eu_1" src="AS_eu_1" symmetrical="YES">
+<link_ctn id="link_gw_eu_1"/>
+</ASroute>
+<ASroute dst="AS_interne" gw_dst="asia_1" gw_src="gw_asia_1" src="AS_asia_1" symmetrical="YES">
+<link_ctn id="link_gw_asia_1"/>
+</ASroute>
+<ASroute dst="AS_interne" gw_dst="asia_2" gw_src="gw_asia_2" src="AS_asia_2" symmetrical="YES">
+<link_ctn id="link_gw_asia_2"/>
+</ASroute>
+<ASroute dst="AS_interne" gw_dst="asia_3" gw_src="gw_asia_3" src="AS_asia_3" symmetrical="YES">
+<link_ctn id="link_gw_asia_3"/>
+</ASroute>
+<ASroute dst="AS_interne" gw_dst="brasil_1" gw_src="gw_brasil_1" src="AS_brasil_1" symmetrical="YES">
+<link_ctn id="link_gw_brasil_1"/>
+</ASroute>
+<ASroute dst="AS_interne" gw_dst="broker" gw_src="gw_broker" src="AS_broker" symmetrical="YES">
+<link_ctn id="link_gw_broker"/>
+</ASroute>
+</AS>
+</platform>

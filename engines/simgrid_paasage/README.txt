@@ -17,11 +17,13 @@ Engines
 
 paassage_simu.py
 
-XML file
+
+Config files
 -------
 
-
 conf.xml
+platform_aws.xml
+cloud_ec2.xml
 
 
 
