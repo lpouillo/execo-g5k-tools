@@ -11,7 +11,6 @@ class kadeploy_trace(Engine):
     def create_paramsweeper(self):
         """Test all the clusters for several env."""
         params = {
-            "cluster": ['taurus'],
             "cluster": get_g5k_clusters(),
             "env": ['wheezy-x64-min', 'wheezy-x64-prod', 'wheezy-x64-big']
             }
@@ -59,6 +58,7 @@ class kadeploy_trace(Engine):
                 logger.warning('%s encountered problems with some hosts', slugify(comb))
 
             sweeper.done(comb)
+            logger.info('%s/%s', sweeper.get_done(), sweeper.get_sweeps())
 
 
 if __name__ == "__main__":
