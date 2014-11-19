@@ -1,13 +1,18 @@
 #!/usr/bin/env python
-from execo import *
-from execo_g5k import *
-from execo_engine import *
+import sys
+from execo import SshProcess
+from execo_g5k import g5k_configuration, OarSubmission, oarsub, \
+    wait_oar_job_start, get_oar_job_nodes, get_oar_job_kavlan, \
+    Deployment, deploy, get_g5k_sites, oardel, \
+    default_frontend_connection_params
+from execo_engine import Engine, sweep, ParamSweeper, logger, \
+    slugify
 from pprint import pformat
 
 
 class kadeploy_dev_test(Engine):
-    """A execo engine to perform test of various configuration 
-    of kadeploy and kadeploy-dev.
+    """A execo engine to perform test of various configuration of kadeploy and
+    kadeploy-dev.
     """
 
     def create_paramsweeper(self):
@@ -15,9 +20,9 @@ class kadeploy_dev_test(Engine):
         params = {
             "version": ['kadeploy3-dev', 'kadeploy3'],
             "kavlan": [True, False],
-            "elements": get_g5k_sites() + get_g5k_clusters() + ['grid5000'],
-            "n_nodes": [1, 4],
-            "env": ['wheezy-x64-base', 'wheezy-x64-prod', 'wheezy-x64-xen',]
+            "site": get_g5k_sites(),
+            "n_nodes": [1, 4, 10],
+            "env": ['wheezy-x64-base', 'wheezy-x64-prod', 'wheezy-x64-xen']
             }
         logger.info('Defining parameters: %s', pformat(params))
 
@@ -29,41 +34,44 @@ class kadeploy_dev_test(Engine):
 
         while len(sweeper.get_remaining()) > 0:
             comb = sweeper.get_next()
-
-            site = comb['site'] + '.grid5000.fr'
             g5k_configuration['kadeploy3'] = comb['version']
             logger.info('Treating combination %s', pformat(comb))
+            get_version = SshProcess(comb['version'] + ' -v',
+                                     comb['site'],
+                                     connection_params=default_frontend_connection_params).run()
+            logger.info(get_version.stdout)
+
             resources = ""
             if comb['kavlan']:
                 resources += "{type='kavlan'}/vlan=1+"
             resources += "nodes=" + str(comb['n_nodes'])
             sub = OarSubmission(resources=resources,
                                 job_type='deploy',
-                                walltime="0:30:00")
-            logger.info('Performing reservation of %s on site %s',
+                                walltime="0:30:00",
+                                name='Kadeploy_Tests')
+            logger.info('Performing submission of %s on site %s',
                         resources, comb['site'])
-            jobs = oarsub( [ (sub, comb['site']) ])
+            jobs = oarsub([(sub, comb['site'])])
 
             if jobs[0][0]:
                 try:
                     logger.info('Waiting for job to start')
                     wait_oar_job_start(jobs[0][0], jobs[0][1])
                     hosts = get_oar_job_nodes(jobs[0][0], jobs[0][1])
-                    logger.info('Deployment of %s', ' '.join( [host.address for host in hosts ]))
+                    logger.info('Deployment of %s',
+                                ' '.join([host.address for host in hosts]))
                     kavlan = get_oar_job_kavlan(jobs[0][0], jobs[0][1])
                     if kavlan:
                         logger.info('In kavlan %s', kavlan)
-                    logger.setLevel('DEBUG')
-                    if '.env' in comb['env']:
-                        deployed, undeployed = deploy(Deployment(hosts,
-                                    env_file=comb['env'],
-                                    vlan=kavlan), out=True)
-                    else:
-                        deployed, undeployed = deploy(Deployment(hosts,
-                                    env_name=comb['env'],
-                                    vlan=kavlan), out=True)
+                    deployment = Deployment(hosts, env_name=comb['env'],
+                                            vlan=kavlan)
+                    deployed, undeployed = deploy(deployment,
+                                                  stdout_handlers=[sys.stdout])
+
                     logger.setLevel('INFO')
                 finally:
+                    logger.info('Destroying job %s on %s', str(jobs[0][0]),
+                                jobs[0][1])
                     oardel([(jobs[0][0], jobs[0][1])])
 
             if len(undeployed) == 0:
@@ -71,7 +79,8 @@ class kadeploy_dev_test(Engine):
             elif len(deployed) == 0:
                 logger.error('%s is KO', slugify(comb))
             else:
-                logger.warning('%s encountered problems with some hosts', slugify(comb))
+                logger.warning('%s encountered problems with some hosts',
+                               slugify(comb))
 
             sweeper.done(comb)
 
@@ -79,4 +88,3 @@ class kadeploy_dev_test(Engine):
 if __name__ == "__main__":
     e = kadeploy_dev_test()
     e.start()
-    
