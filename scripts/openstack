@@ -161,7 +161,7 @@ def install_openstack(site, os_hosts, openstack_campaign_folder):
 
     # Delete nodes file
     Remote("rm -rf %s %s" % (nodes_file, tmp_os_campaign_folder),
-           [site+'.grid5000.fr'],
+           [site + '.grid5000.fr'],
            connection_params=default_frontend_connection_params).run()
 
 
