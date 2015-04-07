@@ -72,6 +72,7 @@ class kadeploy_dev_test(Engine):
                                                   stdout_handlers=[comb_file])
 
                 finally:
+                    deployed = []
                     logger.info('Destroying job %s on %s', str(jobs[0][0]),
                                 jobs[0][1])
                     oardel([(jobs[0][0], jobs[0][1])])
