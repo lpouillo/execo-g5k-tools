@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+
+import os
 from execo import SshProcess
 from execo_g5k import g5k_configuration, OarSubmission, oarsub, \
     wait_oar_job_start, get_oar_job_nodes, get_oar_job_kavlan, \
@@ -7,6 +9,7 @@ from execo_g5k import g5k_configuration, OarSubmission, oarsub, \
 from execo_engine import Engine, sweep, ParamSweeper, logger, \
     slugify
 from pprint import pformat
+
 
 
 class kadeploy_dev_test(Engine):
@@ -35,7 +38,10 @@ class kadeploy_dev_test(Engine):
             comb = sweeper.get_next()
             if not comb:
                 break
-            comb_file = self.result_dir + '/' + slugify(comb) + '/trace'
+            comb_dir = self.result_dir + '/' + slugify(comb)
+            if not os.path.isdir(comb_dir):
+                os.mkdir(comb_dir)
+            comb_file = comb_dir + '/trace'
             g5k_configuration['kadeploy3'] = comb['version']
             logger.info('Treating combination %s', pformat(comb))
             get_version = SshProcess(comb['version'] + ' -v',
@@ -69,13 +75,14 @@ class kadeploy_dev_test(Engine):
                                             vlan=kavlan)
                     deployed, undeployed = deploy(deployment,
                                                   stdout_handlers=[comb_file],
-                                                  stdout_handlers=[comb_file])
+                                                  stderr_handlers=[comb_file])
 
                 finally:
-                    deployed = []
                     logger.info('Destroying job %s on %s', str(jobs[0][0]),
                                 jobs[0][1])
                     oardel([(jobs[0][0], jobs[0][1])])
+            else:
+                deployed = []
 
             if len(undeployed) == 0:
                 logger.info('%s is OK', slugify(comb))
