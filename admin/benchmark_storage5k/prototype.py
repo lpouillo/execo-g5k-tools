@@ -43,3 +43,6 @@ print bench_read.stdout.strip().split('\n')[-1].split()[7]
 print bench_read.start_date
 print bench_read.end_date
 
+# destroying jobs
+logger.info('Destroying jobs')
+oardel([(storage_job_id, storage_site),(jobs[0][0], distant_site)])
