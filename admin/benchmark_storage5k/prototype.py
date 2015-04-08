@@ -6,7 +6,7 @@ from execo_g5k import *
 user = default_frontend_connection_params['user']
 storage_site = 'rennes'
 distant_site = 'nancy'
-logger.info('Benchmarking %s storage from % site', storage_site, distant_site)
+logger.info('Benchmarking %s storage from %s site', storage_site, distant_site)
 
 # perform a storage reservation
 get_chunk_size = SshProcess("storage5k -a chunk_size | cut -f 4 -d ' '", storage_site).run()
