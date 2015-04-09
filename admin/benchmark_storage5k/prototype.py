@@ -31,7 +31,7 @@ jobs = oarsub([(OarSubmission(resources="nodes=1",
 hosts = get_oar_job_nodes(jobs[0][0], distant_site)
 logger.info('Deploying %s', hosts[0].address)
 try:
-    deployed, undeployed = deploy(Deployment(hosts, env_name = "wheezy-x64-nfs"))
+    deployed, undeployed = deploy(Deployment(hosts, env_name="wheezy-x64-nfs"))
     hosts = list(deployed)
     if len(hosts) == 0:
         exit()
@@ -40,7 +40,6 @@ try:
     mount_storage = SshProcess('mount storage5k.%s.grid5000.fr:data/%s_%s /mnt/'
                                 % (storage_site, user, storage_job_id), hosts[0],
                                 connection_params={'user': 'root'}).run()
-
     # perform benchs
     logger.info('Perform bench write')
     bench_write = SshProcess('dd if=/dev/zero of=/mnt/test.out bs=64M count=200 conv=fdatasync oflag=direct',
@@ -50,7 +49,7 @@ try:
     print bench_write.end_date
 
     logger.info('Perform bench read')
-    bench_read = SshProcess('dd if=/mnt/test.out of=/tmp/test.out bs=64M count=200 conv=fdatasync oflag=direct',
+    bench_read = SshProcess('dd if=/mnt/test.out of=/dev/null bs=64M count=200 conv=fdatasync iflag=direct',
                             hosts[0]).run()
     print bench_read.stdout.strip().split('\n')[-1].split()[7]
     print bench_read.start_date
@@ -59,4 +58,4 @@ try:
 finally:
     # destroying jobs
     logger.info('Destroying jobs')
-    oardel([(storage_job_id, storage_site),(jobs[0][0], distant_site)])
+    oardel([(storage_job_id, storage_site), (jobs[0][0], distant_site)])
