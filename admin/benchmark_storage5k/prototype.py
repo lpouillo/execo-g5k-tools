@@ -1,35 +1,41 @@
 #!/usr/bin/env python
+# import necessary libraries
 from execo import *
 from execo_g5k import *
 from getpass import getuser
 
-# define some constants
+# define some constants (storage & distant sites are hard-coded as of now)
 user = getuser()
 storage_site = 'rennes'
 distant_site = 'nancy'
 logger.info('Benchmarking %s storage from %s site', storage_site, distant_site)
 
-# perform a storage reservation
+# perform a storage reservation on the storage site (rennes) using storage5k
 get_chunk_size = SshProcess("storage5k -a chunk_size | cut -f 4 -d ' '",
                             storage_site).run()
 chunk_size = int(get_chunk_size.stdout[1:])
 number = 50 / chunk_size
-get_storage = SshProcess('storage5k -a add -l chunks=' + str(number) + ',walltime=2',
-                         storage_site).run()
+get_storage = SshProcess('storage5k -a add -l chunks=' + str(number) + ',walltime=2:00:00', storage_site).run()
 for s in get_storage.stdout.split('\n'):
     if 'OAR_JOB_ID' in s:
         storage_job_id = int(s.split('=')[1])
         break
 logger.info('Storage available on %s: /data/%s_%s', storage_site, user,
             storage_job_id)
-# reserve a node on the distant site and deploy wheezy-x64-nfs
+
+# reserve a node on the distant site (nancy)
 logger.info('Reserving a node on %s', distant_site)
 jobs = oarsub([(OarSubmission(resources="nodes=1",
                               job_type="deploy",
                               walltime="2:00:00",
                               name="Bench_storage5k"), distant_site)])
+
+# deploy environment "wheezy-x64-nfs" on the reserved node
 hosts = get_oar_job_nodes(jobs[0][0], distant_site)
 logger.info('Deploying %s', hosts[0].address)
+
+# enter the block for actually performing the benchmark tests
+# catch exception if deployment was not successful
 try:
     deployed, undeployed = deploy(Deployment(hosts, env_name="wheezy-x64-nfs"))
     hosts = list(deployed)
@@ -56,6 +62,6 @@ try:
     print bench_read.end_date
 
 finally:
-    # destroying jobs
+    # destroying jobs (storage and node reservations)
     logger.info('Destroying jobs')
     oardel([(storage_job_id, storage_site), (jobs[0][0], distant_site)])
