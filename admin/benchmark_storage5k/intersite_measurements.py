@@ -67,7 +67,6 @@ class benchmark_storage5k(Engine):
                 except:
                     sweeper.cancel(comb)
                     logger.error('Comb %s has been cancelled', pformat(comb))
-                    raise
                 finally:
                     distant_site = comb['distant_site']
                     comb = sweeper.get_next(filtr=lambda r: filter(lambda s: s['distant_site'] == comb['distant_site'], r))
@@ -77,6 +76,7 @@ class benchmark_storage5k(Engine):
                         break
 
             # delete storage jobs
+            oardel([(v, s) for s, v in storage.iteritems()])
 
     def get_storage_resources(self, data_size=50):
         """ Reserve storage on the storage site using storage5k """
@@ -142,7 +142,7 @@ class benchmark_storage5k(Engine):
         return ParamSweeper(self.result_dir + "/sweeper", combs)
     # End of function create_param_sweeper(self)
 
-    def benchmark(self, hosts, bs, count=10, n_measure=3):
+    def benchmark(self, hosts, bs, count=10, n_measure=10):
         """The core function that does the statistical benchmarks and sends results
         2 benchmarks are performed - Read and Write. 
         A large file is read/written 'count' number of times, each time with 
