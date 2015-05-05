@@ -44,21 +44,31 @@ def main():
 
     hosts = setup_hosts(get_hosts(args.job, args.cluster, args.walltime),
                         args.forcedeploy, args.nodeploy)
-    for test in ['cpu', 'memory', 'fio']: #,, 'latency' 'bandwidth']:
+    for test in ['cpu_mono', 'cpu_multi', 'memory', 'fio']: #,, 'latency' 'bandwidth']:
         _clear_cache(hosts)
         logger.info(style.user3('STARTING ' + test.upper() + ' BENCHMARK'))
         getattr(__main__, test)(hosts)
         logger.info(style.user3(test.upper() + ' BENCHMARK DONE') + '\n')
 
 
-def cpu(hosts, max_prime=100000):
+def cpu_mono(hosts, max_prime=10000):
+    """ """
+    cmd = 'sysbench --test=cpu --cpu-max-prime=%s run %s' % \
+        (max_prime, _sys_grep)
+    logger.info('Launching CPU_MONO benchmark with \n%s', style.command(cmd))
+    cpu_test = TaktukRemote(cmd, hosts).run()
+    _print_bench_result(cpu_test, 'CPU_MONO')
+    return True
+
+
+def cpu_multi(hosts, max_prime=100000):
     """ """
     n_core = get_host_attributes(hosts[0])['architecture']['smt_size']
     cmd = 'sysbench --num-threads=%s --test=cpu --cpu-max-prime=%s run %s' % \
         (n_core, max_prime, _sys_grep)
-    logger.info('Launching CPU benchmark with \n%s', style.command(cmd))
+    logger.info('Launching CPU_MULTI benchmark with \n%s', style.command(cmd))
     cpu_test = TaktukRemote(cmd, hosts).run()
-    _print_bench_result(cpu_test, 'CPU')
+    _print_bench_result(cpu_test, 'CPU_MULTI')
     return True
 
 
