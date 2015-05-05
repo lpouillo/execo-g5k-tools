@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
 import os
+import numpy
 import __main__
 from string import Template
-from execo import logger, TaktukRemote, SshProcess, default_connection_params, \
-    ParallelActions
+from execo import logger, TaktukRemote, default_connection_params, sleep
 from execo.log import style
 from execo_g5k import get_planning, compute_slots, get_resource_attributes, \
     find_first_slot, OarSubmission, oarsub, wait_oar_job_start, \
@@ -44,16 +44,17 @@ def main():
 
     hosts = setup_hosts(get_hosts(args.job, args.cluster, args.walltime),
                         args.forcedeploy, args.nodeploy)
-    for test in ['cpu', 'memory', 'fio', 'latency', 'bandwidth']:
-        logger.info('STARTING %s BENCHMARK', style.user3(test))
+    for test in ['cpu', 'memory', 'fio']: #,, 'latency' 'bandwidth']:
+        _clear_cache(hosts)
+        logger.info(style.user3('STARTING ' + test.upper() + ' BENCHMARK'))
         getattr(__main__, test)(hosts)
-        logger.info('%s BENCHMARK DONE', style.user3(test))
+        logger.info(style.user3(test.upper() + ' BENCHMARK DONE') + '\n')
 
 
 def cpu(hosts, max_prime=100000):
     """ """
     n_core = get_host_attributes(hosts[0])['architecture']['smt_size']
-    cmd = 'sysbench --num-threads=%s --test=cpu run --cpu-max-prime=%s %s' % \
+    cmd = 'sysbench --num-threads=%s --test=cpu --cpu-max-prime=%s run %s' % \
         (n_core, max_prime, _sys_grep)
     logger.info('Launching CPU benchmark with \n%s', style.command(cmd))
     cpu_test = TaktukRemote(cmd, hosts).run()
@@ -92,34 +93,35 @@ def fio(hosts):
     logger.info('Cleaning FIO benchmark')
     clean = TaktukRemote(cmd.substitute(action='cleanup', grep=""), hosts).run()
     if not clean.ok:
-        logger.error('Unable to cleant the data for FIO benchmark\n%s',
+        logger.error('Unable to clean the data for FIO benchmark\n%s',
                      '\n'.join([p.host.address + ': ' + p.stout.strip()
                                 for p in clean.processes]))
         exit()
     return True
 
 
-def latency(hosts, n_ping=10):
+def latency(hosts, n_ping=20):
     """ """
-    dests = hosts + [str(get_host_network_equipments(hosts[0])[0]), get_host_site(hosts[0])]
+    dests = hosts + [get_host_site(hosts[0])]
     for c in hosts:
         log = c
         cmds = []
-        for d in dests:
+        for d in dests + get_host_network_equipments(c):
             if d != c:
                 cmds.append('ping -c %s %s | tail -1| awk \'{print $4}\' | '
                             'cut -d \'/\' -f 2' % (n_ping, d))
         mes = TaktukRemote('{{cmds}}', [c] * len(cmds)).run()
         for p in mes.processes:
-            logger.info('LAT %s->%s %s',
-                        get_host_shortname(c),
-                        get_host_shortname(d),
+            src = style.host(get_host_shortname(c))
+            dest = style.host(get_host_shortname(p.remote_cmd.split(' ')[3]))
+            logger.info('LAT ' + (src + '->' + dest).ljust(50) +
                         p.stdout.strip())
+
+    return True
 
 
 def bandwidth(hosts):
     """ """
-
 #    print hosts
 
 
@@ -164,12 +166,14 @@ def get_hosts(job_name, cluster, walltime):
     job_id, site = get_job_by_name(job_name)
     if not job_id:
         job_id, site = _default_job(job_name, cluster, walltime)
-        logger.info('Reservation done %s:%s', site, job_id)
+        logger.info('Reservation done %s:%s', style.log_header(site),
+                    style.emph(job_id))
     logger.info('Waiting for job start')
     wait_oar_job_start(job_id, site)
     job_info = get_resource_attributes('/sites/' + site +
                                        '/jobs/' + str(job_id))
     hosts = job_info['assigned_nodes']
+
     hosts.sort(key=lambda h: (h.split('.', 1)[0].split('-')[0],
                               int(h.split('.', 1)[0].split('-')[1])))
     logger.info('Hosts: %s', hosts_list(hosts))
@@ -179,11 +183,33 @@ def get_hosts(job_name, cluster, walltime):
 
 def _print_bench_result(act, name):
     """ """
+    arr = numpy.array([float(p.stdout.strip()) for p in act.processes])
+    mean, median, stdev = numpy.mean(arr), numpy.median(arr), numpy.std(arr)
+    logger.info('Stats: '
+                + '\n' + style.emph('mean'.ljust(10)) + str(mean)
+                + '\n' + style.emph('median'.ljust(10)) + str(median)
+                + '\n' + style.emph('stdev'.ljust(10)) + str(stdev))
+    error_hosts = []
     for p in act.processes:
-        logger.info('%s %s %s',
-                    name,
-                    style.host(get_host_shortname(p.host.address).ljust(15)),
-                    p.stdout.strip())
+        if float(p.stdout.strip()) >= (median + 2 * stdev) or \
+            float(p.stdout.strip()) <= (median - 2 * stdev):
+            error_hosts.append(get_host_shortname(p.host.address))
+            host = style.host(get_host_shortname(p.host.address).ljust(15))
+            logger.warning('%s %s %s',
+                           name,
+                           host,
+                           p.stdout.strip())
+    if len(error_hosts) > 0:
+        logger.warning('%s performance is not homogeneous ?',
+                       name.upper())
+
+
+def _clear_cache(hosts):
+    """ """
+    clear = TaktukRemote('killall sysbench; sync; echo 3 > /proc/sys/vm/drop_caches',
+                         hosts).run()
+    sleep(2)
+    return clear.ok
 
 
 def _default_job(job_name, cluster, walltime):
