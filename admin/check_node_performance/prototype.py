@@ -5,8 +5,9 @@ from execo_g5k import *
 
 job_name = 'sysbench'
 walltime = '2:00:00'
-cluster = 'sagittaire'
+cluster = 'granduc'
 env_name = 'wheezy-x64-base'
+
 
 default_connection_params['user'] = 'root'
 
@@ -14,7 +15,8 @@ job = get_job_by_name(job_name)
 if not job[0]:
     logger.info('No running job found, performing a new reservation')
     resources_wanted = {cluster: 0}
-    start, end, resources = find_first_slot(get_slots(resources_wanted.keys()),
+    start, end, resources = find_first_slot(get_slots(resources_wanted.keys(),
+                                                      walltime=walltime),
                                             resources_wanted)
     jobs_specs = [(OarSubmission(resources="{cluster='%s'}/nodes=%s"
                                  % (cluster, resources[cluster]),
