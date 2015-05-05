@@ -29,6 +29,9 @@ def main():
                              job='check_node_perf',
                              deploy=True,
                              outdir=True)
+    parser.add_argument('-t', '--tests',
+                        default='cpu_mono,cpu_multi,memory,fio,latency,bandwidth',
+                        help='comma separated list of tests')
     args = parser.parse_args()
 
     if args.verbose:
@@ -44,7 +47,8 @@ def main():
 
     hosts = setup_hosts(get_hosts(args.job, args.cluster, args.walltime),
                         args.forcedeploy, args.nodeploy)
-    for test in ['cpu_mono', 'cpu_multi', 'memory', 'fio']: #,, 'latency' 'bandwidth']:
+
+    for test in args.tests.split(','):
         _clear_cache(hosts)
         logger.info(style.user3('STARTING ' + test.upper() + ' BENCHMARK'))
         getattr(__main__, test)(hosts)
