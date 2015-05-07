@@ -32,7 +32,7 @@ def main():
                                   args.now),
                         args.forcedeploy, args.nodeploy)
 
-    for test in args.tests.split(','):
+    for test in args.tests.split(',') * args.n_measures:
         clear_cache(hosts)
         logger.info(style.user3('Starting ' + test.upper() + ' test'))
         bench_results = getattr(__main__, test)(hosts)
@@ -248,6 +248,10 @@ def init_options():
     parser.add_argument('-t', '--tests',
                         default=default_tests,
                         help='comma separated list of tests')
+    parser.add_argument('-n', '--n-measures',
+                        default=1,
+                        type=int,
+                        help='number of measures to be run for each test')
     parser.add_argument('--kill-job',
                         action="store_true",
                         help='Kill the job at the end')
@@ -359,30 +363,28 @@ def print_bench_result(name, results, full=False):
                 + '\n' + style.emph('stdev'.ljust(10)) + str(stdev))
     error = []
     warning = []
+    if '->' not in results.keys()[0]:
+        sort_func = lambda h: int(h.split('-')[1])
+    else:
+        sort_func = lambda h: int(h.split('->')[0])
+
     for h in sorted(results.keys(),
-                    key=lambda h: int(h.split('.', 1)[0].split('-')[1])):
+                    key=sort_func):
         res = results[h]
-        if full:
-            logger.info('%s %s %s', name, style.host(h).ljust(15),
-                               res)
+
         if res > (median + 2 * stdev) \
             or res < (median - 2 * stdev):
             if abs((res - median) / median) < 0.10:
                 warning.append(h)
-                if not full:
-                    logger.warning('%s %s %s', name, style.host(h).ljust(15),
-                                   res)
-                else:
-                    logger.warning('%s differs a bit',
-                                   style.host(h).ljust(15))
+                logger.warning('%s %s %s', name, style.host(h).ljust(15),
+                               style.report_warn(res))
             else:
                 error.append(h)
-                if not full:
-                    logger.error('%s %s %s', name, style.host(h).ljust(15),
-                                 res)
-                else:
-                    logger.error('%s is not coherent',
-                                 style.host(h).ljust(15))
+                logger.error('%s %s %s', name, style.host(h).ljust(15),
+                             style.report_error(res))
+        elif full:
+            logger.info('%s %s %s', name, style.host(h).ljust(15),
+                               res)
 
     if len(error) > 0:
         logger.info('Need to open a bug ?')
@@ -395,7 +397,13 @@ def print_bench_result(name, results, full=False):
 
 def save_bench_results(test, results, outdir):
     """ """
-    f = open(outdir + '/' + test, 'w')
+    base_fname = outdir + '/' + test
+    i = 0
+    fname = base_fname + '.' + str(i)
+    while os.path.exists(fname):
+        fname = base_fname + '.' + str(i)
+        i += 1
+    f = open(fname, 'w')
     f.write('\n'.join([e + '\t' + str(val) for e, val in results.iteritems()]))
     f.close()
 
