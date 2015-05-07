@@ -1,15 +1,21 @@
 #!/usr/bin/env python
 
 import os
-import numpy
+import time
+import numpy as np
 import __main__
+from math import ceil
+from getpass import getuser
 from string import Template
-from execo import logger, TaktukRemote, default_connection_params, sleep
+from execo import logger, TaktukRemote, default_connection_params, sleep, \
+    wait_all_actions, Remote, SequentialActions, SshProcess
 from execo.log import style
 from execo_g5k import get_planning, compute_slots, get_resource_attributes, \
-    find_first_slot, OarSubmission, oarsub, wait_oar_job_start, \
+    find_max_slot, OarSubmission, oarsub, wait_oar_job_start, \
     get_cluster_site, deploy, Deployment, get_host_network_equipments, \
-    get_host_site, get_host_attributes, get_host_shortname
+    get_host_site, get_host_attributes, get_host_shortname, get_g5k_hosts, \
+    get_host_cluster, get_cluster_network_equipments, oardel, get_g5k_clusters, \
+    find_first_slot, g5k_graph
 from execo_g5k.planning import get_job_by_name
 from execo_g5k.utils import g5k_args_parser, hosts_list
 from execo_engine import copy_outputs
@@ -19,19 +25,235 @@ _sys_grep = '| grep "execution time" | awk \'{print $4}\' | cut -d / -f 1'
 
 
 def main():
+    """Execute a performance check on a given cluster"""
+    args = init_options()
+
+    hosts = setup_hosts(get_hosts(args.job, args.cluster, args.walltime,
+                                  args.now),
+                        args.forcedeploy, args.nodeploy)
+
+    for test in args.tests.split(','):
+        clear_cache(hosts)
+        logger.info(style.user3('Starting ' + test.upper() + ' test'))
+        bench_results = getattr(__main__, test)(hosts)
+        print_bench_result(test, bench_results)
+        save_bench_results(test, bench_results, args.outdir)
+        logger.info(style.user3(test.upper() + ' test done') + '\n')
+
+    if not args.keep_job_alive:
+        logger.info('Destroying job')
+        job_id, site = get_job_by_name(args.job)
+        oardel([(job_id, site)])
+
+
+def cpu_mono(hosts, max_prime=10000):
+    """Execute a stress intensive bench using one core"""
+    cmd = 'sysbench --test=cpu --cpu-max-prime=%s run %s' % \
+        (max_prime, _sys_grep)
+    logger.info('Launching CPU_MONO benchmark with \n%s', style.command(cmd))
+    monocore = TaktukRemote(cmd, hosts).run()
+
+    results = parse_hosts_perf(monocore)
+
+    return results
+
+
+def cpu_multi(hosts, max_prime=100000):
+    """Execute a stress intensive using all the core of the machine"""
+    n_core = get_host_attributes(hosts[0])['architecture']['smt_size']
+    cmd = 'sysbench --num-threads=%s --test=cpu --cpu-max-prime=%s run %s' % \
+        (n_core, max_prime, _sys_grep)
+    logger.info('Launching CPU_MULTI benchmark with \n%s', style.command(cmd))
+    multicore = TaktukRemote(cmd, hosts).run()
+
+    results = parse_hosts_perf(multicore)
+
+    return results
+
+
+def memory(hosts):
+    """Execute a memory intensive test that use the whole memory of the node"""
+    mem_size = get_host_attributes(hosts[0])['main_memory']['ram_size']
+    cmd = 'sysbench --test=memory --memory-block-size=1M ' + \
+        '--memory-total-size=' + str(mem_size) + ' run' + _sys_grep
+    logger.info('Launching MEM benchmark with \n%s', style.command(cmd))
+    mem_test = TaktukRemote(cmd, hosts).run()
+
+    results = parse_hosts_perf(mem_test)
+
+    return results
+
+
+def fio(hosts):
+    """Execute sequential read write """
+    attr = get_host_attributes(hosts[0])
+    n_core = attr['architecture']['smt_size']
+    perf = float(attr['performance']['node_flops'])
+    filesize = int(ceil(float(perf) / 2. / 10 ** 9))
+    if filesize == 0:
+        logger.warning('No performance information in Reference API for %s',
+                       get_host_shortname(hosts[0]).address)
+        filesize = 10
+    print filesize
+    cmd = Template("cd /tmp && sysbench --num-threads=%s --test=fileio "
+                   "--file-total-size=%sG --file-test-mode=seqwr "
+                   "$action $grep" % (n_core, filesize))
+    logger.info('Preparing FIO benchmark')
+    prepare = TaktukRemote(cmd.substitute(action='prepare', grep=""),
+                           hosts).run()
+    if not prepare.ok:
+        logger.error('Unable to prepare the data for FIO benchmark\n%s',
+                     '\n'.join([p.host.address + ': ' + p.stout.strip()
+                                for p in prepare.processes]))
+        exit()
+    logger.info('Launching FIO benchmark with \n%s',
+                style.command(cmd.substitute(action='run', grep=_sys_grep)))
+    run = TaktukRemote(cmd.substitute(action='run', grep=_sys_grep),
+                       hosts).run()
+    logger.info('Cleaning FIO benchmark')
+    clean = TaktukRemote(cmd.substitute(action='cleanup', grep=""),
+                         hosts).run()
+    if not clean.ok:
+        logger.error('Unable to clean the data for FIO benchmark\n%s',
+                     '\n'.join([p.host.address + ': ' + p.stout.strip()
+                                for p in clean.processes]))
+        exit()
+
+    results = parse_hosts_perf(run)
+
+    return results
+
+
+def lat_gw(hosts, n_ping=10):
     """ """
+    cmd = 'ping -c %s gw-%s |tail -1| awk \'{print $4}\' |cut -d \'/\' -f 2' \
+        % (n_ping, get_host_site(hosts[0]))
+    logger.info('Executing ping from hosts to site router \n%s',
+                style.command(cmd))
+    ping_gw = TaktukRemote(cmd, hosts).run()
+
+    results = {}
+    for p in ping_gw.processes:
+        link = get_host_shortname(p.host.address).split('-')[1] + '->' + \
+            p.remote_cmd.split('|')[0].split()[3].strip()
+        results[link] = float(p.stdout.strip())
+
+    return results
+
+
+def lat_hosts(hosts, n_ping=10):
+    """ """
+    cmd = 'fping -c %s -e -q %s 2>&1 | awk \'{print $1" "$8}\'' % \
+        (n_ping, ' '.join([get_host_shortname(h) for h in hosts]))
+    logger.info('Executing fping from hosts to all other hosts \n%s',
+                style.command(cmd))
+    fping = TaktukRemote(cmd, hosts).run()
+
+    results = {}
+    for p in fping.processes:
+        src = get_host_shortname(p.host.address).split('-')[1]
+        for h_res in p.stdout.strip().split('\n'):
+            h, tmpres = h_res.split()
+            dst = get_host_shortname(h).split('-')[1]
+            res = tmpres.split('/')[1]
+            if src != dst:
+                results[src + '->' + dst] = float(res)
+
+    return results
+
+
+def bw_frontend(hosts):
+    """ """
+    frontend = get_host_site(hosts[0])
+    f_user = getuser()
+    port = '4567'
+    with SshProcess('iperf -s -p ' + port, frontend,
+                      connection_params={"user": f_user}).start() as iperf_serv:
+        iperf_serv.expect("^Server listening", timeout=10)
+        logger.info('IPERF server running on %s, launching measurement',
+                    style.host(frontend))
+        actions = [Remote('iperf -f m -t 5 -c ' + frontend + ' -p ' + port +
+                         ' | tail -1 | awk \'{print $8}\'', [h]) for h in hosts]
+        iperf_clients = SequentialActions(actions).run()
+    iperf_serv.wait()
+
+    results = {}
+    for p in iperf_clients.processes:
+        link = get_host_shortname(p.host.address).split('-')[1] + '->' + \
+            frontend
+        results[link] = float(p.stdout.strip())
+
+    return results
+
+
+def bw_oneone(hosts):
+    """ """
+    servers = hosts
+    clients = [hosts[-1]] + hosts[0:-1]
+    logger.info('Launching iperf measurements')
+    with TaktukRemote('iperf -s', servers).start() as iperf_serv:
+        iperf_serv.expect("^Server listening")
+        logger.info('IPERF servers are running, launching measurement')
+        iperf_clients = TaktukRemote('iperf -f m -t 30 -c {{servers}}'
+                                     '| tail -1 | awk \'{print $7}\'',
+                                     clients).run()
+    iperf_serv.wait()
+    results = {}
+    for p in iperf_clients.processes:
+        src = get_host_shortname(p.host.address).split('-')[1]
+        dst = get_host_shortname(p.remote_cmd.split('|')[0].split()[6].strip()).split('-')[1] 
+        link = src + '->' + dst
+        results[link] = float(p.stdout.strip())
+
+    return results
+
+
+def bw_hosts(hosts):
+    """ """
+    results = {}
+    g = g5k_graph(hosts)
+    with TaktukRemote('iperf -s', hosts).start() as iperf_serv:
+        iperf_serv.expect("^Server listening", timeout=10)
+        for src in hosts:
+            logger.info('%s to others',
+                        style.host(get_host_shortname(src)))
+            dests = g.get_host_neighbours(get_host_shortname(src))
+            actions = [Remote('iperf -f m -t 5 -c ' + dst +
+                              ' | tail -1 | awk \'{print $8}\'', src)
+                       for dst in dests]
+            iperf_clients = SequentialActions(actions).run()
+            for p in iperf_clients.processes:
+                link = src.split('-')[1] + '->' + \
+                    p.remote_cmd.split('|')[0].split()[6].strip()
+                results[link] = float(p.stdout.strip())
+
+    iperf_serv.wait()
+
+    return results
+
+
+def init_options():
+    """ """
+
     parser = g5k_args_parser(description="Reserve all the available nodes on "
                              "a cluster and check that nodes exhibits same "
                              "performance for cpu, disk, network",
-                             cluster='stremi',
-                             walltime='3:00:00',
+                             cluster=True,
+                             walltime='2:00:00',
                              loglevel=True,
-                             job='check_node_perf',
+                             job=True,
                              deploy=True,
                              outdir=True)
+    default_tests = 'cpu_mono,cpu_multi,memory,fio,lat_gw,bw_frontend,lat_hosts,bw_oneone'
     parser.add_argument('-t', '--tests',
-                        default='cpu_mono,cpu_multi,memory,fio,latency,bandwidth',
+                        default=default_tests,
                         help='comma separated list of tests')
+    parser.add_argument('--keep-job-alive',
+                        action="store_true",
+                        help='Keep the job running at the end')
+    parser.add_argument('--now',
+                        action="store_true",
+                        help='Use the nodes that are available on the cluster')
     args = parser.parse_args()
 
     if args.verbose:
@@ -40,103 +262,26 @@ def main():
         logger.setLevel('WARN')
     else:
         logger.setLevel('INFO')
+    if args.cluster not in get_g5k_clusters():
+        logger.error('cluster %s is not a valid g5k cluster, specify it'
+                     'with -c ', style.emph(args.cluster))
+        exit()
+
+    if isinstance(args.job, bool):
+        args.job = 'check_perf_' + args.cluster
+    if isinstance(args.outdir, bool):
+        args.outdir = args.cluster + '_' + time.strftime("%Y%m%d_%H%M%S_%z")
     if not os.path.exists(args.outdir):
         os.mkdir(args.outdir)
     copy_outputs(args.outdir + '/' + parser.prog + '.log',
                  args.outdir + '/' + parser.prog + '.log')
 
-    hosts = setup_hosts(get_hosts(args.job, args.cluster, args.walltime),
-                        args.forcedeploy, args.nodeploy)
+    logger.info(style.user3('LAUNCHING PERFORMANCE HOMOGENEITY CHECK'))
+    logger.info('%s will be benchmarked using tests %s',
+               style.host(args.cluster),
+               style.emph(args.tests))
 
-    for test in args.tests.split(','):
-        _clear_cache(hosts)
-        logger.info(style.user3('STARTING ' + test.upper() + ' BENCHMARK'))
-        getattr(__main__, test)(hosts)
-        logger.info(style.user3(test.upper() + ' BENCHMARK DONE') + '\n')
-
-
-def cpu_mono(hosts, max_prime=10000):
-    """ """
-    cmd = 'sysbench --test=cpu --cpu-max-prime=%s run %s' % \
-        (max_prime, _sys_grep)
-    logger.info('Launching CPU_MONO benchmark with \n%s', style.command(cmd))
-    cpu_test = TaktukRemote(cmd, hosts).run()
-    _print_bench_result(cpu_test, 'CPU_MONO')
-    return True
-
-
-def cpu_multi(hosts, max_prime=100000):
-    """ """
-    n_core = get_host_attributes(hosts[0])['architecture']['smt_size']
-    cmd = 'sysbench --num-threads=%s --test=cpu --cpu-max-prime=%s run %s' % \
-        (n_core, max_prime, _sys_grep)
-    logger.info('Launching CPU_MULTI benchmark with \n%s', style.command(cmd))
-    cpu_test = TaktukRemote(cmd, hosts).run()
-    _print_bench_result(cpu_test, 'CPU_MULTI')
-    return True
-
-
-def memory(hosts):
-    """ """
-    mem_size = get_host_attributes(hosts[0])['main_memory']['ram_size']
-    cmd = 'sysbench --test=memory --memory-block-size=1M ' + \
-        '--memory-total-size=' + str(mem_size) + ' run' + _sys_grep
-    logger.info('Launching MEM benchmark with \n%s', style.command(cmd))
-    mem_test = TaktukRemote(cmd, hosts).run()
-    _print_bench_result(mem_test, 'MEM')
-    return True
-
-
-def fio(hosts):
-    """ """
-    n_core = get_host_attributes(hosts[0])['architecture']['smt_size']
-    cmd = Template("cd /tmp && sysbench --num-threads=%s --test=fileio "
-                   "--file-total-size=10G --file-test-mode=seqwr "
-                   "$action $grep" % (n_core, ))
-    logger.info('Preparing FIO benchmark')
-    prepare = TaktukRemote(cmd.substitute(action='prepare', grep=""), hosts).run()
-    if not prepare.ok:
-        logger.error('Unable to prepare the data for FIO benchmark\n%s',
-                     '\n'.join([p.host.address + ': ' + p.stout.strip()
-                                for p in prepare.processes]))
-        exit()
-    logger.info('Launching FIO benchmark with \n%s',
-                style.command(cmd.substitute(action='run', grep=_sys_grep)))
-    run = TaktukRemote(cmd.substitute(action='run', grep=_sys_grep), hosts).run()
-    _print_bench_result(run, 'FIO')
-    logger.info('Cleaning FIO benchmark')
-    clean = TaktukRemote(cmd.substitute(action='cleanup', grep=""), hosts).run()
-    if not clean.ok:
-        logger.error('Unable to clean the data for FIO benchmark\n%s',
-                     '\n'.join([p.host.address + ': ' + p.stout.strip()
-                                for p in clean.processes]))
-        exit()
-    return True
-
-
-def latency(hosts, n_ping=20):
-    """ """
-    dests = hosts + [get_host_site(hosts[0])]
-    for c in hosts:
-        log = c
-        cmds = []
-        for d in dests + get_host_network_equipments(c):
-            if d != c:
-                cmds.append('ping -c %s %s | tail -1| awk \'{print $4}\' | '
-                            'cut -d \'/\' -f 2' % (n_ping, d))
-        mes = TaktukRemote('{{cmds}}', [c] * len(cmds)).run()
-        for p in mes.processes:
-            src = style.host(get_host_shortname(c))
-            dest = style.host(get_host_shortname(p.remote_cmd.split(' ')[3]))
-            logger.info('LAT ' + (src + '->' + dest).ljust(50) +
-                        p.stdout.strip())
-
-    return True
-
-
-def bandwidth(hosts):
-    """ """
-#    print hosts
+    return args
 
 
 def setup_hosts(hosts, force_deploy, no_deploy):
@@ -165,8 +310,9 @@ def setup_hosts(hosts, force_deploy, no_deploy):
     if not conf_ssh.ok:
         logger.error('Unable to configure SSH')
         exit()
-    logger.info('Installing sysbench')
-    cmd = 'apt-get update && apt-get install -y sysbench'
+    packages = 'sysbench fping'
+    logger.info('Installing ' + style.emph(packages))
+    cmd = 'apt-get update && apt-get install -y ' + packages
     install_sysbench = TaktukRemote(cmd, hosts).run()
     if not install_sysbench.ok:
         logger.error('Unable to install sysbench')
@@ -175,12 +321,16 @@ def setup_hosts(hosts, force_deploy, no_deploy):
     return hosts
 
 
-def get_hosts(job_name, cluster, walltime):
+def get_hosts(job_name, cluster, walltime, now=False):
     """ """
-    job_id, site = get_job_by_name(job_name)
+    site = get_cluster_site(cluster)
+    if job_name.isdigit():
+        job_id = int(job_name)
+    else:
+        job_id, _ = get_job_by_name(job_name, sites=[site])
     if not job_id:
-        job_id, site = _default_job(job_name, cluster, walltime)
-        logger.info('Reservation done %s:%s', style.log_header(site),
+        job_id, site = _default_job(job_name, cluster, walltime, now)
+        logger.info('Reservation done %s:%s', style.host(site),
                     style.emph(job_id))
     logger.info('Waiting for job start')
     wait_oar_job_start(job_id, site)
@@ -195,30 +345,63 @@ def get_hosts(job_name, cluster, walltime):
     return hosts
 
 
-def _print_bench_result(act, name):
+def print_bench_result(name, results):
     """ """
-    arr = numpy.array([float(p.stdout.strip()) for p in act.processes])
-    mean, median, stdev = numpy.mean(arr), numpy.median(arr), numpy.std(arr)
+    name = name.upper()
+    mean, median, stdev = compute_stats(results)
+
     logger.info('Stats: '
                 + '\n' + style.emph('mean'.ljust(10)) + str(mean)
                 + '\n' + style.emph('median'.ljust(10)) + str(median)
                 + '\n' + style.emph('stdev'.ljust(10)) + str(stdev))
-    error_hosts = []
-    for p in act.processes:
-        if float(p.stdout.strip()) >= (median + 2 * stdev) or \
-            float(p.stdout.strip()) <= (median - 2 * stdev):
-            error_hosts.append(get_host_shortname(p.host.address))
-            host = style.host(get_host_shortname(p.host.address).ljust(15))
-            logger.warning('%s %s %s',
-                           name,
-                           host,
-                           p.stdout.strip())
-    if len(error_hosts) > 0:
-        logger.warning('%s performance is not homogeneous ?',
+    error = []
+    warning = []
+    for h, res in results.iteritems():
+        if res > (median + 2 * stdev) \
+            or res < (median - 2 * stdev):
+            if abs((res - median) / median) < 0.10:
+                warning.append(h)
+                logger.warning('%s %s %s', name, style.host(h).ljust(15),
+                               res)
+            else:
+                error.append(h)
+                logger.error('%s %s %s', name, style.host(h).ljust(15),
+                             res)
+
+    if len(error) > 0:
+        logger.info('Need to open a bug ?')
+    elif len(warning) > 0:
+        logger.warning('%s performance is slightly not homogeneous ?',
                        name.upper())
+    else:
+        logger.info('%s performance is homogeneous', name.upper())
 
 
-def _clear_cache(hosts):
+def save_bench_results(test, results, outdir):
+    """ """
+    f = open(outdir + '/' + test, 'w')
+    f.write('\n'.join([e + '\t' + str(val) for e, val in results.iteritems()]))
+    f.close()
+
+
+def compute_stats(results):
+    """ """
+    mean = np.mean(np.array(results.values()))
+    median = np.median(np.array(results.values()))
+    stdev = np.std(np.array(results.values()))
+
+    return mean, median, stdev
+
+
+def parse_hosts_perf(act):
+    """ """
+    results = {get_host_shortname(p.host.address): float(p.stdout.strip())
+                         for p in act.processes}
+
+    return results
+
+
+def clear_cache(hosts):
     """ """
     clear = TaktukRemote('killall sysbench; sync; echo 3 > /proc/sys/vm/drop_caches',
                          hosts).run()
@@ -226,13 +409,16 @@ def _clear_cache(hosts):
     return clear.ok
 
 
-def _default_job(job_name, cluster, walltime):
+def _default_job(job_name, cluster, walltime, now=False):
     """ """
     logger.info('No job running, making a reservation')
     wanted = {cluster: 0}
     planning = get_planning(wanted.keys())
     slots = compute_slots(planning, walltime)
-    start_date, _, resources = find_first_slot(slots, wanted)
+    if now:
+        start_date, _, resources = find_first_slot(slots, wanted)
+    else:
+        start_date, _, resources = find_max_slot(slots, wanted)
     jobs_specs = [(OarSubmission(resources='{cluster=\'%s\'}/nodes=%s' % 
                                  (cluster, resources[cluster]),
                                  job_type="deploy",
