@@ -36,11 +36,11 @@ def main():
         clear_cache(hosts)
         logger.info(style.user3('Starting ' + test.upper() + ' test'))
         bench_results = getattr(__main__, test)(hosts)
-        print_bench_result(test, bench_results)
+        print_bench_result(test, bench_results, args.full)
         save_bench_results(test, bench_results, args.outdir)
         logger.info(style.user3(test.upper() + ' test done') + '\n')
 
-    if not args.keep_job_alive:
+    if args.kill_job:
         logger.info('Destroying job')
         job_id, site = get_job_by_name(args.job)
         oardel([(job_id, site)])
@@ -248,12 +248,15 @@ def init_options():
     parser.add_argument('-t', '--tests',
                         default=default_tests,
                         help='comma separated list of tests')
-    parser.add_argument('--keep-job-alive',
+    parser.add_argument('--kill-job',
                         action="store_true",
-                        help='Keep the job running at the end')
+                        help='Kill the job at the end')
     parser.add_argument('--now',
                         action="store_true",
                         help='Use the nodes that are available on the cluster')
+    parser.add_argument('--full',
+                        action="store_true",
+                        help='print all the measures')
     args = parser.parse_args()
 
     if args.verbose:
@@ -345,7 +348,7 @@ def get_hosts(job_name, cluster, walltime, now=False):
     return hosts
 
 
-def print_bench_result(name, results):
+def print_bench_result(name, results, full=False):
     """ """
     name = name.upper()
     mean, median, stdev = compute_stats(results)
@@ -356,17 +359,30 @@ def print_bench_result(name, results):
                 + '\n' + style.emph('stdev'.ljust(10)) + str(stdev))
     error = []
     warning = []
-    for h, res in results.iteritems():
+    for h in sorted(results.keys(),
+                    key=lambda h: int(h.split('.', 1)[0].split('-')[1])):
+        res = results[h]
+        if full:
+            logger.info('%s %s %s', name, style.host(h).ljust(15),
+                               res)
         if res > (median + 2 * stdev) \
             or res < (median - 2 * stdev):
             if abs((res - median) / median) < 0.10:
                 warning.append(h)
-                logger.warning('%s %s %s', name, style.host(h).ljust(15),
-                               res)
+                if not full:
+                    logger.warning('%s %s %s', name, style.host(h).ljust(15),
+                                   res)
+                else:
+                    logger.warning('%s differs a bit',
+                                   style.host(h).ljust(15))
             else:
                 error.append(h)
-                logger.error('%s %s %s', name, style.host(h).ljust(15),
-                             res)
+                if not full:
+                    logger.error('%s %s %s', name, style.host(h).ljust(15),
+                                 res)
+                else:
+                    logger.error('%s is not coherent',
+                                 style.host(h).ljust(15))
 
     if len(error) > 0:
         logger.info('Need to open a bug ?')
