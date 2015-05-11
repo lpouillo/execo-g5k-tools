@@ -73,9 +73,10 @@ def cpu_multi(hosts, max_prime=100000):
 
 def memory(hosts):
     """Execute a memory intensive test that use the whole memory of the node"""
+    n_core = get_host_attributes(hosts[0])['architecture']['smt_size']
     mem_size = get_host_attributes(hosts[0])['main_memory']['ram_size']
-    cmd = 'sysbench --test=memory --memory-block-size=1M ' + \
-        '--memory-total-size=' + str(mem_size) + ' run' + _sys_grep
+    cmd = 'sysbench --test=memory --num-threads=%s --memory-block-size=%s ' \
+        'run %s' % (n_core, mem_size, _sys_grep)
     logger.info('Launching MEM benchmark with \n%s', style.command(cmd))
     mem_test = TaktukRemote(cmd, hosts).run()
 
@@ -268,7 +269,7 @@ def init_options(args=None):
                         help='Select environment name, such as '
                             'jessie-x64-base or user:env_name')
     parser.add_argument('--packages',
-                        default="sysench,fio",
+                        default="sysbench,fio",
                         help='List of packages to install')
     parser.add_argument('--hosts-file',
                         help='The path to a file containing the list of hosts')
