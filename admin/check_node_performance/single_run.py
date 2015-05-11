@@ -8,14 +8,12 @@ from math import ceil
 from getpass import getuser
 from string import Template
 from execo import logger, TaktukRemote, default_connection_params, sleep, \
-    wait_all_actions, Remote, SequentialActions, SshProcess
+    Remote, SequentialActions, SshProcess
 from execo.log import style
 from execo_g5k import get_planning, compute_slots, get_resource_attributes, \
-    find_max_slot, OarSubmission, oarsub, wait_oar_job_start, \
-    get_cluster_site, deploy, Deployment, get_host_network_equipments, \
-    get_host_site, get_host_attributes, get_host_shortname, get_g5k_hosts, \
-    get_host_cluster, get_cluster_network_equipments, oardel, get_g5k_clusters, \
-    find_first_slot, g5k_graph
+    find_max_slot, OarSubmission, oarsub, wait_oar_job_start, deploy, \
+    get_cluster_site, Deployment, get_host_site, get_host_attributes, \
+    get_host_shortname, oardel, get_g5k_clusters, find_first_slot, g5k_graph
 from execo_g5k.planning import get_job_by_name
 from execo_g5k.utils import g5k_args_parser, hosts_list
 from execo_engine import copy_outputs
@@ -26,11 +24,13 @@ _sys_grep = '| grep "execution time" | awk \'{print $4}\' | cut -d / -f 1'
 
 def main():
     """Execute a performance check on a given cluster"""
+
     args = init_options()
 
     hosts = setup_hosts(get_hosts(args.job, args.cluster, args.walltime,
-                                  args.now),
-                        args.forcedeploy, args.nodeploy)
+                                  args.now, args.hosts_file),
+                        args.forcedeploy, args.nodeploy, args.env_name,
+                        args.packages)
 
     for test in args.tests.split(',') * args.n_measures:
         clear_cache(hosts)
@@ -125,7 +125,7 @@ def fio(hosts):
 
 
 def lat_gw(hosts, n_ping=10):
-    """ """
+    """Measure the latency between hosts and site router"""
     cmd = 'ping -c %s gw-%s |tail -1| awk \'{print $4}\' |cut -d \'/\' -f 2' \
         % (n_ping, get_host_site(hosts[0]))
     logger.info('Executing ping from hosts to site router \n%s',
@@ -142,7 +142,7 @@ def lat_gw(hosts, n_ping=10):
 
 
 def lat_hosts(hosts, n_ping=10):
-    """ """
+    """Measure latency between hosts using fping"""
     cmd = 'fping -c %s -e -q %s 2>&1 | awk \'{print $1" "$8}\'' % \
         (n_ping, ' '.join([get_host_shortname(h) for h in hosts]))
     logger.info('Executing fping from hosts to all other hosts \n%s',
@@ -163,17 +163,17 @@ def lat_hosts(hosts, n_ping=10):
 
 
 def bw_frontend(hosts):
-    """ """
+    """Sequential measurement of bandwidth between hosts and frontend"""
     frontend = get_host_site(hosts[0])
     f_user = getuser()
     port = '4567'
     with SshProcess('iperf -s -p ' + port, frontend,
-                      connection_params={"user": f_user}).start() as iperf_serv:
+                    connection_params={"user": f_user}).start() as iperf_serv:
         iperf_serv.expect("^Server listening", timeout=10)
         logger.info('IPERF server running on %s, launching measurement',
                     style.host(frontend))
         actions = [Remote('iperf -f m -t 5 -c ' + frontend + ' -p ' + port +
-                         ' | tail -1 | awk \'{print $8}\'', [h]) for h in hosts]
+                         ' | tail -1| awk \'{print $8}\'', [h]) for h in hosts]
         iperf_clients = SequentialActions(actions).run()
     iperf_serv.wait()
 
@@ -187,7 +187,7 @@ def bw_frontend(hosts):
 
 
 def bw_oneone(hosts):
-    """ """
+    """Parallel measurements of bandwitdh from one host to another"""
     servers = hosts
     clients = [hosts[-1]] + hosts[0:-1]
     logger.info('Launching iperf measurements')
@@ -209,7 +209,7 @@ def bw_oneone(hosts):
 
 
 def bw_hosts(hosts):
-    """ """
+    """Sequential measurements of bandwidth from all hosts to all others"""
     results = {}
     g = g5k_graph(hosts)
     with TaktukRemote('iperf -s', hosts).start() as iperf_serv:
@@ -232,8 +232,9 @@ def bw_hosts(hosts):
     return results
 
 
-def init_options():
-    """ """
+def init_options(args=None):
+    """Define the options, set log level and create some default values if
+    some options are not set"""
 
     parser = g5k_args_parser(description="Reserve all the available nodes on "
                              "a cluster and check that nodes exhibits same "
@@ -244,7 +245,8 @@ def init_options():
                              job=True,
                              deploy=True,
                              outdir=True)
-    default_tests = 'cpu_mono,cpu_multi,memory,fio,lat_gw,bw_frontend,lat_hosts,bw_oneone'
+    default_tests = 'cpu_mono,cpu_multi,memory,fio,' + \
+        'lat_gw,bw_frontend,lat_hosts,bw_oneone'
     parser.add_argument('-t', '--tests',
                         default=default_tests,
                         help='comma separated list of tests')
@@ -261,7 +263,18 @@ def init_options():
     parser.add_argument('--full',
                         action="store_true",
                         help='print all the measures')
-    args = parser.parse_args()
+    parser.add_argument('--env-name',
+                        default="wheezy-x64-prod",
+                        help='Select environment name, such as '
+                            'jessie-x64-base or user:env_name')
+    parser.add_argument('--packages',
+                        default="sysench,fio",
+                        help='List of packages to install')
+    parser.add_argument('--hosts-file',
+                        help='The path to a file containing the list of hosts')
+
+    if not args:
+        args = parser.parse_args()
 
     if args.verbose:
         logger.setLevel('DEBUG')
@@ -269,10 +282,12 @@ def init_options():
         logger.setLevel('WARN')
     else:
         logger.setLevel('INFO')
-    if args.cluster not in get_g5k_clusters():
+    if args.cluster not in get_g5k_clusters() and not args.hosts_file:
         logger.error('cluster %s is not a valid g5k cluster, specify it'
                      'with -c ', style.emph(args.cluster))
         exit()
+    if args.hosts_file:
+        args.cluster = 'custom'
 
     if isinstance(args.job, bool):
         args.job = 'check_perf_' + args.cluster
@@ -280,8 +295,8 @@ def init_options():
         args.outdir = args.cluster + '_' + time.strftime("%Y%m%d_%H%M%S_%z")
     if not os.path.exists(args.outdir):
         os.mkdir(args.outdir)
-    copy_outputs(args.outdir + '/' + parser.prog + '.log',
-                 args.outdir + '/' + parser.prog + '.log')
+    copy_outputs(args.outdir + '/run_' + args.cluster + '.log',
+                 args.outdir + '/run_' + args.cluster + '.log')
 
     logger.info(style.user3('LAUNCHING PERFORMANCE HOMOGENEITY CHECK'))
     logger.info('%s will be benchmarked using tests %s',
@@ -291,13 +306,15 @@ def init_options():
     return args
 
 
-def setup_hosts(hosts, force_deploy, no_deploy):
-    """ """
+def setup_hosts(hosts, force_deploy, no_deploy, env_name, packages=None):
+    """Deploy a wheezy-x64-prod environment, configure SSH,
+    install some packages and """
     logger.info('Deploying hosts')
     check = not force_deploy
     num_tries = int(not no_deploy)
 
-    deployed, undeployed = deploy(Deployment(hosts=hosts, env_name="wheezy-x64-prod"),
+    deployed, undeployed = deploy(Deployment(hosts=hosts,
+                                             env_name=env_name),
                                   num_tries=num_tries,
                                   check_deployed_command=check)
     if len(undeployed) > 0:
@@ -311,43 +328,54 @@ def setup_hosts(hosts, force_deploy, no_deploy):
                    '$HOME/.ssh/id_rsa:$HOME/.ssh/id_rsa,' +
                    '$HOME/.ssh/id_rsa.pub:$HOME/.ssh')
     conf_ssh = TaktukRemote('echo "Host *" >> /root/.ssh/config ;' +
-                            'echo " StrictHostKeyChecking no" >> /root/.ssh/config; ',
-                            hosts,
-                            connection_params={'taktuk_options': taktuk_conf}).run()
+                            'echo " StrictHostKeyChecking no" >> ' +
+                            '/root/.ssh/config; ',
+                            hosts, connection_params={'taktuk_options':
+                                                      taktuk_conf}).run()
     if not conf_ssh.ok:
         logger.error('Unable to configure SSH')
         exit()
-    packages = 'sysbench fping'
-    logger.info('Installing ' + style.emph(packages))
-    cmd = 'apt-get update && apt-get install -y ' + packages
-    install_sysbench = TaktukRemote(cmd, hosts).run()
-    if not install_sysbench.ok:
-        logger.error('Unable to install sysbench')
-        exit()
+    if packages:
+        logger.info('Installing ' + style.emph(packages))
+        cmd = 'apt-get update && apt-get install -y ' + \
+            packages.replace(',', ' ')
+        install_pkg = TaktukRemote(cmd, hosts).run()
+        if not install_pkg.ok:
+            logger.error('Unable to install sysbench')
+            exit()
 
     return hosts
 
 
-def get_hosts(job_name, cluster, walltime, now=False):
-    """ """
-    site = get_cluster_site(cluster)
-    if job_name.isdigit():
-        job_id = int(job_name)
-    else:
-        job_id, _ = get_job_by_name(job_name, sites=[site])
-    if not job_id:
-        job_id, site = _default_job(job_name, cluster, walltime, now)
-        logger.info('Reservation done %s:%s', style.host(site),
-                    style.emph(job_id))
-    logger.info('Waiting for job start')
-    wait_oar_job_start(job_id, site)
-    job_info = get_resource_attributes('/sites/' + site +
-                                       '/jobs/' + str(job_id))
-    hosts = job_info['assigned_nodes']
+def get_hosts(job_name, cluster, walltime, now=False, hosts_file=None):
+    """Retrieve the job from the job_name, perform a new job if none found
+    and return the list of hosts"""
+    if not hosts_file:
+        site = get_cluster_site(cluster)
+        if job_name.isdigit():
+            job_id = int(job_name)
+        else:
+            job_id, _ = get_job_by_name(job_name, sites=[site])
+        if not job_id:
+            job_id, site = _default_job(job_name, cluster, walltime, now)
+            logger.info('Reservation done %s:%s', style.host(site),
+                        style.emph(job_id))
+        logger.info('Waiting for job start')
+        wait_oar_job_start(job_id, site)
+        job_info = get_resource_attributes('/sites/' + site +
+                                           '/jobs/' + str(job_id))
+        hosts = job_info['assigned_nodes']
 
-    hosts.sort(key=lambda h: (h.split('.', 1)[0].split('-')[0],
-                              int(h.split('.', 1)[0].split('-')[1])))
-    logger.info('Hosts: %s', hosts_list(hosts))
+        hosts.sort(key=lambda h: (h.split('.', 1)[0].split('-')[0],
+                                  int(h.split('.', 1)[0].split('-')[1])))
+        logger.info('Hosts: %s', hosts_list(hosts))
+    else:
+        hosts = []
+        with open(hosts_file) as f:
+            hosts.append(f.readline())
+        print hosts
+    exit()
+    
 
     return hosts
 
