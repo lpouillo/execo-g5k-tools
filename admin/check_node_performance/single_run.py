@@ -373,9 +373,6 @@ def get_hosts(job_name, cluster, walltime, now=False, hosts_file=None):
         hosts = []
         with open(hosts_file) as f:
             hosts.append(f.readline())
-        print hosts
-    exit()
-    
 
     return hosts
 
