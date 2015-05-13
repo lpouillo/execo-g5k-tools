@@ -1,4 +1,17 @@
 #!/usr/bin/env python
+# Copyright 2015 INRIA Rhone-Alpes, Service Experimentation et
+# Developpement
+#
+# Perf5k is free software: you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Perf5k is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+# or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
+# License for more details, <http://www.gnu.org/licenses/>
+
 
 import os
 import time
@@ -23,13 +36,22 @@ _sys_grep = '| grep "execution time" | awk \'{print $4}\' | cut -d / -f 1'
 
 
 def main():
-    """Execute a performance check on a given cluster"""
+    """(A)utomatic (S)imilarity (CL)uster (E)valuation of (P)erformance, (IO)
+    and network (S)peed, asclepios, is a tool that allow to check the 
+    performance homogeneity of a Grid'5000 cluster for cpu, memory, disk,
+    network latency and bandwidth. If performs the following actions:
+    - retrieve the nodes of the cluster
+    - deploy an enviromment and install some bench tools
+    - execute various performance test
+    - save the results
+
+    See -h for help. Based on execo-2.5."""
 
     args = init_options()
 
     hosts = setup_hosts(get_hosts(args.job, args.cluster, args.walltime,
                                   args.now, args.hosts_file),
-                        args.forcedeploy, args.nodeploy, args.env_name,
+                        args.env, args.forcedeploy, args.nodeploy,
                         args.packages)
 
     for test in args.tests.split(',') * args.n_measures:
@@ -46,6 +68,163 @@ def main():
         oardel([(job_id, site)])
 
 
+# Execution functions
+def init_options(args=None):
+    """Define the options, set log level and create some default values if
+    some options are not set"""
+
+    parser = g5k_args_parser(description="Reserve all the available nodes on "
+                             "a cluster and check that nodes exhibits same "
+                             "performance for cpu, disk, network",
+                             cluster=True,
+                             walltime='2:00:00',
+                             loglevel=True,
+                             job=True,
+                             deploy=True,
+                             outdir=True)
+    default_tests = 'cpu_mono,cpu_multi,memory,fio,' + \
+        'lat_gw,bw_frontend,lat_hosts,bw_oneone'
+    parser.add_argument('-t', '--tests',
+                        default=default_tests,
+                        help='comma separated list of tests')
+    parser.add_argument('-n', '--n-measures',
+                        default=1,
+                        type=int,
+                        help='number of measures to be run for each test')
+    parser.add_argument('--kill-job',
+                        action="store_true",
+                        help='Kill the job at the end')
+    parser.add_argument('--now',
+                        action="store_true",
+                        help='Use the nodes that are available on the cluster')
+    parser.add_argument('--full',
+                        action="store_true",
+                        help='print all the measures')
+    parser.add_argument('--env',
+                        default="wheezy-x64-prod",
+                        help='Select environment name, such as '
+                            'jessie-x64-base or user:myenv or the path'
+                            'to the env file.')
+    parser.add_argument('--packages',
+                        default="sysbench,fio",
+                        help='List of packages to install')
+    parser.add_argument('--hosts-file',
+                        help='The path to a file containing the list of hosts')
+
+    if not args:
+        args = parser.parse_args()
+
+    if args.verbose:
+        logger.setLevel('DEBUG')
+    elif args.quiet:
+        logger.setLevel('WARN')
+    else:
+        logger.setLevel('INFO')
+    if args.cluster not in get_g5k_clusters() and not args.hosts_file:
+        logger.error('cluster %s is not a valid g5k cluster, specify it'
+                     'with -c ', style.emph(args.cluster))
+        exit()
+    if args.hosts_file:
+        args.cluster = 'custom'
+
+    if isinstance(args.job, bool):
+        args.job = 'asclepios_' + args.cluster
+    if isinstance(args.outdir, bool):
+        args.outdir = args.cluster + '_' + time.strftime("%Y%m%d_%H%M%S_%z")
+    if not os.path.exists(args.outdir):
+        os.mkdir(args.outdir)
+    copy_outputs(args.outdir + '/run_' + args.cluster + '.log',
+                 args.outdir + '/run_' + args.cluster + '.log')
+
+    logger.info(style.user3('LAUNCHING PERFORMANCE HOMOGENEITY CHECK'))
+    logger.info('%s will be benchmarked using tests %s',
+               style.host(args.cluster),
+               style.emph(args.tests))
+
+    return args
+
+
+def get_hosts(job_name, cluster, walltime, now=False, hosts_file=None):
+    """Retrieve the job from the job_name, perform a new job if none found
+    and return the list of hosts"""
+    if not hosts_file:
+        site = get_cluster_site(cluster)
+        if job_name.isdigit():
+            job_id = int(job_name)
+        else:
+            job_id, _ = get_job_by_name(job_name, sites=[site])
+        if not job_id:
+            job_id, site = default_job(job_name, cluster, walltime, now)
+            logger.info('Reservation done %s:%s', style.host(site),
+                        style.emph(job_id))
+        logger.info('Waiting for job start')
+        wait_oar_job_start(job_id, site)
+        job_info = get_resource_attributes('/sites/' + site +
+                                           '/jobs/' + str(job_id))
+        hosts = job_info['assigned_nodes']
+
+        hosts.sort(key=lambda h: (h.split('.', 1)[0].split('-')[0],
+                                  int(h.split('.', 1)[0].split('-')[1])))
+        logger.info('Hosts: %s', hosts_list(hosts))
+    else:
+        hosts = []
+        with open(hosts_file) as f:
+            hosts.append(f.readline())
+
+    return hosts
+
+
+def setup_hosts(hosts, env, force_deploy, no_deploy, packages=None):
+    """Deploy a wheezy-x64-prod environment, configure SSH,
+    install some packages and """
+    logger.info('Deploying hosts')
+    check = not force_deploy
+    num_tries = int(not no_deploy)
+    if os.path.exists(env):
+        env_file, user, env_name = env, None, None
+    elif ':' in env:
+        env_file = None
+        user, env_name = env.split(':')
+    else:
+        env_file, user, env_name = None, None, env
+
+    deployed, undeployed = deploy(Deployment(hosts=hosts,
+                                             env_name=env_name,
+                                             env_file=env_file,
+                                             user=user),
+                                  num_tries=num_tries,
+                                  check_deployed_command=check)
+    if len(undeployed) > 0:
+        logger.warning('%s have not been deployed',
+                       hosts_list(list(undeployed)))
+    hosts = list(deployed)
+    hosts.sort(key=lambda h: (h.split('.', 1)[0].split('-')[0],
+                              int(h.split('.', 1)[0].split('-')[1])))
+
+    taktuk_conf = ('-s', '-S',
+                   '$HOME/.ssh/id_rsa:$HOME/.ssh/id_rsa,' +
+                   '$HOME/.ssh/id_rsa.pub:$HOME/.ssh')
+    conf_ssh = TaktukRemote('echo "Host *" >> /root/.ssh/config ;' +
+                            'echo " StrictHostKeyChecking no" >> ' +
+                            '/root/.ssh/config; ',
+                            hosts, connection_params={'taktuk_options':
+                                                      taktuk_conf}).run()
+    if not conf_ssh.ok:
+        logger.error('Unable to configure SSH')
+        exit()
+    if packages:
+        logger.info('Installing ' + style.emph(packages))
+        cmd = 'apt-get update && apt-get install -y ' + \
+            packages.replace(',', ' ')
+        install_pkg = TaktukRemote(cmd, hosts).run()
+        if not install_pkg.ok:
+            logger.error('Unable to install sysbench')
+            exit()
+
+    return hosts
+
+
+# Test functions
 def cpu_mono(hosts, max_prime=10000):
     """Execute a stress intensive bench using one core"""
     cmd = 'sysbench --test=cpu --cpu-max-prime=%s run %s' % \
@@ -106,7 +285,7 @@ def fio(hosts):
         logger.error('Unable to prepare the data for FIO benchmark\n%s',
                      '\n'.join([p.host.address + ': ' + p.stout.strip()
                                 for p in prepare.processes]))
-        exit()
+        return {}
     logger.info('Launching FIO benchmark with \n%s',
                 style.command(cmd.substitute(action='run', grep=_sys_grep)))
     run = TaktukRemote(cmd.substitute(action='run', grep=_sys_grep),
@@ -118,7 +297,7 @@ def fio(hosts):
         logger.error('Unable to clean the data for FIO benchmark\n%s',
                      '\n'.join([p.host.address + ': ' + p.stout.strip()
                                 for p in clean.processes]))
-        exit()
+        return {}
 
     results = parse_hosts_perf(run)
 
@@ -202,7 +381,8 @@ def bw_oneone(hosts):
     results = {}
     for p in iperf_clients.processes:
         src = get_host_shortname(p.host.address).split('-')[1]
-        dst = get_host_shortname(p.remote_cmd.split('|')[0].split()[6].strip()).split('-')[1] 
+        dst = get_host_shortname(p.remote_cmd.split('|')[0].split()[6]\
+                                 .strip()).split('-')[1]
         link = src + '->' + dst
         results[link] = float(p.stdout.strip())
 
@@ -233,151 +413,7 @@ def bw_hosts(hosts):
     return results
 
 
-def init_options(args=None):
-    """Define the options, set log level and create some default values if
-    some options are not set"""
-
-    parser = g5k_args_parser(description="Reserve all the available nodes on "
-                             "a cluster and check that nodes exhibits same "
-                             "performance for cpu, disk, network",
-                             cluster=True,
-                             walltime='2:00:00',
-                             loglevel=True,
-                             job=True,
-                             deploy=True,
-                             outdir=True)
-    default_tests = 'cpu_mono,cpu_multi,memory,fio,' + \
-        'lat_gw,bw_frontend,lat_hosts,bw_oneone'
-    parser.add_argument('-t', '--tests',
-                        default=default_tests,
-                        help='comma separated list of tests')
-    parser.add_argument('-n', '--n-measures',
-                        default=1,
-                        type=int,
-                        help='number of measures to be run for each test')
-    parser.add_argument('--kill-job',
-                        action="store_true",
-                        help='Kill the job at the end')
-    parser.add_argument('--now',
-                        action="store_true",
-                        help='Use the nodes that are available on the cluster')
-    parser.add_argument('--full',
-                        action="store_true",
-                        help='print all the measures')
-    parser.add_argument('--env-name',
-                        default="wheezy-x64-prod",
-                        help='Select environment name, such as '
-                            'jessie-x64-base or user:env_name')
-    parser.add_argument('--packages',
-                        default="sysbench,fio",
-                        help='List of packages to install')
-    parser.add_argument('--hosts-file',
-                        help='The path to a file containing the list of hosts')
-
-    if not args:
-        args = parser.parse_args()
-
-    if args.verbose:
-        logger.setLevel('DEBUG')
-    elif args.quiet:
-        logger.setLevel('WARN')
-    else:
-        logger.setLevel('INFO')
-    if args.cluster not in get_g5k_clusters() and not args.hosts_file:
-        logger.error('cluster %s is not a valid g5k cluster, specify it'
-                     'with -c ', style.emph(args.cluster))
-        exit()
-    if args.hosts_file:
-        args.cluster = 'custom'
-
-    if isinstance(args.job, bool):
-        args.job = 'check_perf_' + args.cluster
-    if isinstance(args.outdir, bool):
-        args.outdir = args.cluster + '_' + time.strftime("%Y%m%d_%H%M%S_%z")
-    if not os.path.exists(args.outdir):
-        os.mkdir(args.outdir)
-    copy_outputs(args.outdir + '/run_' + args.cluster + '.log',
-                 args.outdir + '/run_' + args.cluster + '.log')
-
-    logger.info(style.user3('LAUNCHING PERFORMANCE HOMOGENEITY CHECK'))
-    logger.info('%s will be benchmarked using tests %s',
-               style.host(args.cluster),
-               style.emph(args.tests))
-
-    return args
-
-
-def setup_hosts(hosts, force_deploy, no_deploy, env_name, packages=None):
-    """Deploy a wheezy-x64-prod environment, configure SSH,
-    install some packages and """
-    logger.info('Deploying hosts')
-    check = not force_deploy
-    num_tries = int(not no_deploy)
-
-    deployed, undeployed = deploy(Deployment(hosts=hosts,
-                                             env_name=env_name),
-                                  num_tries=num_tries,
-                                  check_deployed_command=check)
-    if len(undeployed) > 0:
-        logger.warning('%s have not been deployed',
-                       hosts_list(list(undeployed)))
-    hosts = list(deployed)
-    hosts.sort(key=lambda h: (h.split('.', 1)[0].split('-')[0],
-                              int(h.split('.', 1)[0].split('-')[1])))
-
-    taktuk_conf = ('-s', '-S',
-                   '$HOME/.ssh/id_rsa:$HOME/.ssh/id_rsa,' +
-                   '$HOME/.ssh/id_rsa.pub:$HOME/.ssh')
-    conf_ssh = TaktukRemote('echo "Host *" >> /root/.ssh/config ;' +
-                            'echo " StrictHostKeyChecking no" >> ' +
-                            '/root/.ssh/config; ',
-                            hosts, connection_params={'taktuk_options':
-                                                      taktuk_conf}).run()
-    if not conf_ssh.ok:
-        logger.error('Unable to configure SSH')
-        exit()
-    if packages:
-        logger.info('Installing ' + style.emph(packages))
-        cmd = 'apt-get update && apt-get install -y ' + \
-            packages.replace(',', ' ')
-        install_pkg = TaktukRemote(cmd, hosts).run()
-        if not install_pkg.ok:
-            logger.error('Unable to install sysbench')
-            exit()
-
-    return hosts
-
-
-def get_hosts(job_name, cluster, walltime, now=False, hosts_file=None):
-    """Retrieve the job from the job_name, perform a new job if none found
-    and return the list of hosts"""
-    if not hosts_file:
-        site = get_cluster_site(cluster)
-        if job_name.isdigit():
-            job_id = int(job_name)
-        else:
-            job_id, _ = get_job_by_name(job_name, sites=[site])
-        if not job_id:
-            job_id, site = _default_job(job_name, cluster, walltime, now)
-            logger.info('Reservation done %s:%s', style.host(site),
-                        style.emph(job_id))
-        logger.info('Waiting for job start')
-        wait_oar_job_start(job_id, site)
-        job_info = get_resource_attributes('/sites/' + site +
-                                           '/jobs/' + str(job_id))
-        hosts = job_info['assigned_nodes']
-
-        hosts.sort(key=lambda h: (h.split('.', 1)[0].split('-')[0],
-                                  int(h.split('.', 1)[0].split('-')[1])))
-        logger.info('Hosts: %s', hosts_list(hosts))
-    else:
-        hosts = []
-        with open(hosts_file) as f:
-            hosts.append(f.readline())
-
-    return hosts
-
-
+# Various function
 def print_bench_result(name, results, full=False):
     """ """
     name = name.upper()
@@ -422,7 +458,7 @@ def print_bench_result(name, results, full=False):
 
 
 def save_bench_results(test, results, outdir):
-    """ """
+    """Save results """
     base_fname = outdir + '/' + test
     i = 0
     fname = base_fname + '.' + str(i)
@@ -432,6 +468,7 @@ def save_bench_results(test, results, outdir):
     f = open(fname, 'w')
     f.write('\n'.join([e + '\t' + str(val) for e, val in results.iteritems()]))
     f.close()
+    logger.info('Results saved in %s', fname)
 
 
 def compute_stats(results):
@@ -453,13 +490,14 @@ def parse_hosts_perf(act):
 
 def clear_cache(hosts):
     """ """
-    clear = TaktukRemote('killall sysbench; sync; echo 3 > /proc/sys/vm/drop_caches',
+    clear = TaktukRemote('killall sysbench; sync; echo 3 > '
+                         '/proc/sys/vm/drop_caches',
                          hosts).run()
     sleep(2)
     return clear.ok
 
 
-def _default_job(job_name, cluster, walltime, now=False):
+def default_job(job_name, cluster, walltime, now=False):
     """ """
     logger.info('No job running, making a reservation')
     wanted = {cluster: 0}
@@ -469,8 +507,8 @@ def _default_job(job_name, cluster, walltime, now=False):
         start_date, _, resources = find_first_slot(slots, wanted)
     else:
         start_date, _, resources = find_max_slot(slots, wanted)
-    jobs_specs = [(OarSubmission(resources='{cluster=\'%s\'}/nodes=%s' % 
-                                 (cluster, resources[cluster]),
+    jobs_specs = [(OarSubmission(resources='{cluster=\'%s\'}/nodes=%s'
+                                 % (cluster, resources[cluster]),
                                  job_type="deploy",
                                  walltime=walltime,
                                  reservation_date=start_date,
