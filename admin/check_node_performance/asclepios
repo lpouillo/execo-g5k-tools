@@ -370,7 +370,7 @@ def hwloc(hosts, outdir):
     sanitized = {}
     for f in os.listdir(save_dir):
         host = f.split('.')[0]
-        xml = ET.parse(outdir + '/lshw/' + f)
+        xml = ET.parse(save_dir + f)
         doc = xml.getroot()
         clear_paths = ['.//info[@name=\'HostName\']',
                        './/info[@name=\'Address\']',
