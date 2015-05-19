@@ -323,7 +323,7 @@ def hardware(hosts, outdir):
 
         # replace number by X in node hostname
         x = doc.find('.//node[@class=\'system\']')
-        if x:
+        if x is not None:
             x.set('id', re.sub('-\d*', '-X', x.get('id')))
         # clear elements that are unique by definition
         to_clear = ['.//node[@class=\'network\']/serial',
@@ -331,6 +331,7 @@ def hardware(hosts, outdir):
                     './/node[@class=\'volume\']/serial',
                     './/node[@class=\'system\']/serial',
                     './/node[@class=\'bus\']/serial',
+                    './/node[@class=\'input\']/serial',
                     './/node[@class=\'memory\']/serial',
                     './/node[@class=\'processor\']/size']
         for path in to_clear:
@@ -355,7 +356,7 @@ def hardware(hosts, outdir):
 
 def hwloc(hosts, outdir):
     """ """
-    save_dir = outdir + '/lshw/'
+    save_dir = outdir + '/hwloc/'
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
     shosts = map(get_host_shortname, hosts)
