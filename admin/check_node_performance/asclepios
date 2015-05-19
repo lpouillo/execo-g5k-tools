@@ -14,29 +14,34 @@
 
 
 import os
+import re
 import time
 import numpy as np
 import __main__
+from xml.etree import ElementTree as ET
 from math import ceil
 from getpass import getuser
 from string import Template
 from execo import logger, TaktukRemote, default_connection_params, sleep, \
-    Remote, SequentialActions, SshProcess
+    Remote, SequentialActions, SshProcess, configuration, Get
 from execo.log import style
 from execo_g5k import get_planning, compute_slots, get_resource_attributes, \
     find_max_slot, OarSubmission, oarsub, wait_oar_job_start, deploy, \
     get_cluster_site, Deployment, get_host_site, get_host_attributes, \
-    get_host_shortname, oardel, get_g5k_clusters, find_first_slot, g5k_graph
+    get_host_shortname, oardel, get_g5k_clusters, find_first_slot, g5k_graph, \
+    get_cluster_attributes
 from execo_g5k.planning import get_job_by_name
 from execo_g5k.utils import g5k_args_parser, hosts_list
 from execo_engine import copy_outputs
 
 default_connection_params['user'] = 'root'
+configuration['color_styles']['OK'] = 'green',  'bold'
+configuration['color_styles']['KO'] = 'red', 'bold'
 _sys_grep = '| grep "execution time" | awk \'{print $4}\' | cut -d / -f 1'
 
 
 def main():
-    """(A)utomatic (S)imilarity (CL)uster (E)valuation of (P)erformance, (IO)
+    """(A)utomatic (S)imilarity (CL)uster (E)valuation for (P)erformance, (IO)
     and network (S)peed, asclepios, is a tool that allow to check the 
     performance homogeneity of a Grid'5000 cluster for cpu, memory, disk,
     network latency and bandwidth. If performs the following actions:
@@ -48,19 +53,21 @@ def main():
     See -h for help. Based on execo-2.5."""
 
     args = init_options()
+    logger.info(style.log_header('Retrieving hosts'))
+    hosts = get_hosts(args.job, args.cluster, args.walltime,
+                                  args.now, args.hosts_file)
 
-    hosts = setup_hosts(get_hosts(args.job, args.cluster, args.walltime,
-                                  args.now, args.hosts_file),
+    logger.info(style.log_header('Deploying hosts and installing packages'))
+    hosts = setup_hosts(hosts,
                         args.env, args.forcedeploy, args.nodeploy,
                         args.packages)
 
-    for test in args.tests.split(',') * args.n_measures:
-        clear_cache(hosts)
-        logger.info(style.user3('Starting ' + test.upper() + ' test'))
-        bench_results = getattr(__main__, test)(hosts)
-        print_bench_result(test, bench_results, args.full)
-        save_bench_results(test, bench_results, args.outdir)
-        logger.info(style.user3(test.upper() + ' test done') + '\n')
+    logger.info(style.log_header('Checking hosts configuration'))
+    conf_checks(hosts, args)
+
+    logger.info('%s \n%s', style.log_header('Running benchmarks'),
+                style.emph(args.tests))
+    run_benchmarks(hosts, args)
 
     if args.kill_job:
         logger.info('Destroying job')
@@ -101,12 +108,12 @@ def init_options(args=None):
                         action="store_true",
                         help='print all the measures')
     parser.add_argument('--env',
-                        default="wheezy-x64-prod",
+                        default="jessie-x64-base",
                         help='Select environment name, such as '
                             'jessie-x64-base or user:myenv or the path'
                             'to the env file.')
     parser.add_argument('--packages',
-                        default="sysbench,fio",
+                        default="sysbench,fio,fping,iperf,lshw",
                         help='List of packages to install')
     parser.add_argument('--hosts-file',
                         help='The path to a file containing the list of hosts')
@@ -136,10 +143,11 @@ def init_options(args=None):
     copy_outputs(args.outdir + '/run_' + args.cluster + '.log',
                  args.outdir + '/run_' + args.cluster + '.log')
 
-    logger.info(style.user3('LAUNCHING PERFORMANCE HOMOGENEITY CHECK'))
-    logger.info('%s will be benchmarked using tests %s',
+    logger.info(style.user3(' ASCLEPIOS \n(A)utomatic (S)imilarity (CL)uster '
+            '(E)valuation for (P)erformance, (IO) and network (S)peed'))
+    logger.info('%s %s',
                style.host(args.cluster),
-               style.emph(args.tests))
+               get_cluster_attributes(args.cluster)['model'])
 
     return args
 
@@ -178,7 +186,7 @@ def setup_hosts(hosts, env, force_deploy, no_deploy, packages=None):
     """Deploy a wheezy-x64-prod environment, configure SSH,
     install some packages and """
     logger.info('Deploying hosts')
-    check = not force_deploy
+    check = 'ls /root' if not force_deploy else False
     num_tries = int(not no_deploy)
     if os.path.exists(env):
         env_file, user, env_name = env, None, None
@@ -213,7 +221,7 @@ def setup_hosts(hosts, env, force_deploy, no_deploy, packages=None):
         logger.error('Unable to configure SSH')
         exit()
     if packages:
-        logger.info('Installing ' + style.emph(packages))
+        logger.info('Installing ' + style.emph(' '.join(packages.split(','))))
         cmd = 'apt-get update && apt-get install -y ' + \
             packages.replace(',', ' ')
         install_pkg = TaktukRemote(cmd, hosts).run()
@@ -224,7 +232,154 @@ def setup_hosts(hosts, env, force_deploy, no_deploy, packages=None):
     return hosts
 
 
-# Test functions
+def conf_checks(hosts, args):
+    """ """
+
+    def _group_hosts_by_values(results):
+        groups = {}
+        for k, v in results.iteritems():
+            if v not in groups.keys():
+                groups[v] = []
+            groups[v].append(k)
+        return groups
+
+    def _print_hosts_diff(groups):
+        ref = None
+        for k in sorted(groups, key=lambda k: len(groups[k]), reverse=True):
+            if not ref:
+                logger.info('%s (used as reference) %s', style.OK(' OK '),
+                            hosts_list(groups[k]))
+                ref = k
+            else:
+                logger.info('%s %s \n%s', style.KO(' KO '),
+                            hosts_list(groups[k]), _unidiff_output(ref, k))
+
+    tests = {'kernel': 'Kernel configurations',
+             'hardware': 'Detected hardware'}
+    for t, mes in tests.iteritems():
+        logger.info(mes)
+        outputs = getattr(__main__, t)(hosts, args.outdir)
+        groups = _group_hosts_by_values(outputs)
+        if len(groups.keys()) > 1:
+            _print_hosts_diff(groups)
+            logger.error(style.KO(mes + ' not homogeneous'))
+        else:
+            logger.info(style.OK(mes + ' homogeneous '))
+
+    return True
+
+
+def kernel(hosts, outdir):
+    """Retrieve informations about kernel version, loaded module
+    and kernel configuration"""
+    save_dir = outdir + '/kernel/'
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+    # Remove this line which are by definition hosts dependent
+    ignored_lines = ['kernel.random.entropy_avail', 'kernel.random.boot_id',
+                    'kernel.random.uuid', 'kernel.hostname',
+                    'kernel.ns_last_pid', 'kernel.pty.nr',
+                    '.max_newidle_lb_cost',
+                    'kernel.sched_domain.cpu.*.domain1.max_newidle_lb_cost',
+                    'fs.inode-nr', 'fs.inode-state',
+                    'fs.dentry-state', 'fs.file-nr', 'fs.file-max']
+    cmd = 'echo "`uname -srvmpio ; lsmod | sort ; sysctl -a`" | ' + \
+        ' | '.join(['grep -v ' + pattern for pattern in ignored_lines])
+    if len(hosts) > 250:
+        logger.warning('TAKTUK MAY SPLIT THE OUTPUT OF sysctl')
+        kernel_check = TaktukRemote(cmd, hosts).run()
+    else:
+        kernel_check = Remote(cmd, hosts).run()
+    outputs = {}
+    for p in kernel_check.processes:
+        outputs[p.host.address] = p.stdout.strip()
+        f = open(save_dir + get_host_shortname(p.host.address) + '.conf',
+                 'w')
+        f.write(p.stdout.strip())
+        f.close()
+
+    return outputs
+
+
+def hardware(hosts, outdir):
+    """ """
+    save_dir = outdir + '/lshw/'
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+    shosts = map(get_host_shortname, hosts)
+    cmd = 'mkdir -p /tmp/lshw ; lshw -xml > /tmp/lshw/{{shosts}}.xml'
+    lshw = TaktukRemote(cmd, hosts).run()
+    get_lshw = Get(hosts, ['/tmp/lshw/{{shosts}}.xml'],
+                   local_location=save_dir).run()
+    if not lshw.ok or not get_lshw.ok:
+        return None
+
+    sanitized = {}
+    for f in os.listdir(outdir + '/lshw'):
+        if not '.xml' in f:
+            continue
+        host = f.split('.')[0]
+        xml = ET.parse(outdir + '/lshw/' + f)
+        doc = xml.getroot()
+
+        # replace number by X in node hostname
+        x = doc.find('.//node[@class=\'system\']')
+        x.set('id', re.sub('-\d*', '-X', x.get('id')))
+        # clear elements that are unique by definition
+        to_clear = ['.//node[@class=\'network\']/serial',
+                    './/node[@class=\'disk\']/serial',
+                    './/node[@class=\'volume\']/serial',
+                    './/node[@class=\'system\']/serial',
+                    './/node[@class=\'bus\']/serial',
+                    './/node[@class=\'memory\']/serial',
+                    './/node[@class=\'processor\']/size']
+        for path in to_clear:
+            for serial in doc.findall(path):
+                serial.clear()
+        # empty elements that are unique by definition
+        empty = ['.//node[@class=\'network\']/configuration/setting[@id=\'ip\']',
+                 './/node[@class=\'disk\']/configuration/setting[@id=\'signature\']',
+                 './/node[@class=\'system\']/configuration/setting[@id=\'uuid\']',
+                 './/node[@id=\'core\']/slot',
+                 './/node[@class=\'volume\']/configuration/setting',
+                 './/resource[@type=\'irq\']',
+                 './/node[@class=\'processor\']']
+        for path in empty:
+            for el in doc.findall(path):
+                el.set('value', '')
+
+        sanitized[host] = ET.tostring(doc)
+
+    return sanitized
+
+
+def _unidiff_output(expected, actual):
+    """
+    Helper function. Returns a string containing the unified diff of two
+    multiline strings.
+    """
+
+    import difflib
+    expected = expected.splitlines(1)
+    actual = actual.splitlines(1)
+
+    diff = difflib.unified_diff(expected, actual)
+
+    return ''.join(diff)
+
+
+# Benchmarking methods functions
+def run_benchmarks(hosts, args):
+    """ """
+    for test in args.tests.split(',') * args.n_measures:
+        clear_cache(hosts)
+        logger.info(style.user3('Starting ' + test.upper() + ' test'))
+        bench_results = getattr(__main__, test)(hosts)
+        print_bench_result(test, bench_results, args.full)
+        save_bench_results(test, bench_results, args.outdir)
+        logger.info(style.user3(test.upper() + ' test done') + '\n')
+
+
 def cpu_mono(hosts, max_prime=10000):
     """Execute a stress intensive bench using one core"""
     cmd = 'sysbench --test=cpu --cpu-max-prime=%s run %s' % \
@@ -274,11 +429,10 @@ def fio(hosts):
         logger.warning('No performance information in Reference API for %s',
                        get_host_shortname(hosts[0]).address)
         filesize = 10
-    print filesize
     cmd = Template("cd /tmp && sysbench --num-threads=%s --test=fileio "
                    "--file-total-size=%sG --file-test-mode=seqwr "
                    "$action $grep" % (n_core, filesize))
-    logger.info('Preparing FIO benchmark')
+    logger.info('Preparing FIO benchmark (%s Gb file)', filesize)
     prepare = TaktukRemote(cmd.substitute(action='prepare', grep=""),
                            hosts).run()
     if not prepare.ok:
@@ -333,6 +487,7 @@ def lat_hosts(hosts, n_ping=10):
     for p in fping.processes:
         src = get_host_shortname(p.host.address).split('-')[1]
         for h_res in p.stdout.strip().split('\n'):
+            print h_res
             h, tmpres = h_res.split()
             dst = get_host_shortname(h).split('-')[1]
             res = tmpres.split('/')[1]
@@ -459,7 +614,7 @@ def print_bench_result(name, results, full=False):
 
 def save_bench_results(test, results, outdir):
     """Save results """
-    base_fname = outdir + '/' + test
+    base_fname = outdir + '/bench_' + test
     i = 0
     fname = base_fname + '.' + str(i)
     while os.path.exists(fname):
@@ -515,6 +670,97 @@ def default_job(job_name, cluster, walltime, now=False):
                                  name=job_name),
                    get_cluster_site(cluster))]
     return oarsub(jobs_specs)[0]
+
+#
+#    print _unidiff_output(lshw.processes[0].stdout, lshw.processes[1].stdout)
+#    exit()
+#    print _unidiff_output(lshw.processes[0].stdout, lshw.processes[2].stdout)
+#    print _unidiff_output(lshw.processes[0].stdout, lshw.processes[3].stdout)
+#
+#    sanitized = {}
+#    for p in lshw.processes:
+#        print p.stdout
+#        print p.host
+#        sanitized[p.host.address] = _sanitize_lshw_output(p.stdout.strip())
+#
+#    pprint(sanitized)
+#    def _sanitize_lshw(output):
+#
+#
+#        # set value = '' for several paths
+#
+#
+#        return ET.tostring(doc)
+#    def _sanitize_hwloc(output):
+#        """ """
+#        parser = ET.XMLParser(encoding="utf-8")
+#        doc = ET.fromstring(output, parser=parser)
+#        # remove some paths
+#        clear_paths = ['.//info[@name=\'HostName\']',
+#                       './/info[@name=\'Address\']',
+#                       './/info[@name=\'DMIProductUUID\']',
+#                       './/info[@name=\'DMIProductSerial\']',
+#                       './/info[@name=\'DMIBoardSerial\']',
+#                       './/info[@name=\'DMIChassisSerial\']']
+#        for path in clear_paths:
+#            for el in doc.findall(path):
+#                el.clear()
+#
+#        return ET.tostring(doc)
+#    def _sanitize_lspci(output):
+#        """ """
+#        return re.sub('Serial Number.*', 'Serial Number', output)
+
+#    # LSPCI
+#    cmd = 'lspci -v'
+#    hwloc = TaktukRemote(cmd, hosts).run()
+#    sanitized = {}
+#    for p in hwloc.processes:
+#        sanitized[p.host.address] = _sanitize_lspci(p.stdout.strip())
+#    grouped = _group_hosts_by_values(sanitized)
+#    if len(grouped.keys()) > 1:
+#        logger.warning('Not homogeneous for hwloc')
+#        for i, val in enumerate(grouped.values()):
+#            print val
+#            print _unidiff_output(grouped.keys()[0], grouped.keys()[i])
+#
+#    exit()
+#
+#    from pprint import pprint
+    # HWLOC
+#    cmd = 'hwloc-ls --of xml'
+#    hwloc = TaktukRemote(cmd, hosts).run()
+#    sanitized = {}
+#    for p in hwloc.processes:
+#        sanitized[p.host.address] = _sanitize_hwloc_output(p.stdout.strip())
+#
+#    grouped = _group_hosts_by_values(sanitized)
+#    if len(grouped.keys()) > 1:
+#        logger.warning('Not homogeneous for hwloc')
+#        print grouped.values()
+#        print _unidiff_output(grouped.keys()[0], grouped.keys()[1])
+#
+#    exit()
+##    logger.setLevel('DEBUG')
+#    # LSHW
+#
+#def _fix_sysctl_stdout(diff):
+#    """ """
+#    # command output of sysctl is sometimes printed on two lines
+#    fix_diff = ''
+#    for l in diff.split('\n'):
+#        if len(l) == 0:
+#            continue
+#        if l[0] == '+' or l[0] == '-':
+#            if not '=' in l:
+#                merge = l
+#                continue
+#            if merge:
+#                fix_diff += merge + l
+#                merge = None
+#        else:
+#            fix_diff += l
+#    return fix_diff
 
 
 if __name__ == "__main__":
