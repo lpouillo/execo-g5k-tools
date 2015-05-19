@@ -113,7 +113,7 @@ def init_options(args=None):
                             'jessie-x64-base or user:myenv or the path'
                             'to the env file.')
     parser.add_argument('--packages',
-                        default="sysbench,fio,fping,iperf,lshw",
+                        default="sysbench,fping,iperf,lshw,hwloc",
                         help='List of packages to install')
     parser.add_argument('--hosts-file',
                         help='The path to a file containing the list of hosts')
@@ -255,7 +255,8 @@ def conf_checks(hosts, args):
                             hosts_list(groups[k]), _unidiff_output(ref, k))
 
     tests = {'kernel': 'Kernel configurations',
-             'hardware': 'Detected hardware'}
+             'hardware': 'Detected hardware',
+             'hwloc': 'Hardware locality'}
     for t, mes in tests.iteritems():
         logger.info(mes)
         outputs = getattr(__main__, t)(hosts, args.outdir)
@@ -315,16 +316,15 @@ def hardware(hosts, outdir):
         return None
 
     sanitized = {}
-    for f in os.listdir(outdir + '/lshw'):
-        if not '.xml' in f:
-            continue
+    for f in os.listdir(save_dir):
         host = f.split('.')[0]
         xml = ET.parse(outdir + '/lshw/' + f)
         doc = xml.getroot()
 
         # replace number by X in node hostname
         x = doc.find('.//node[@class=\'system\']')
-        x.set('id', re.sub('-\d*', '-X', x.get('id')))
+        if x:
+            x.set('id', re.sub('-\d*', '-X', x.get('id')))
         # clear elements that are unique by definition
         to_clear = ['.//node[@class=\'network\']/serial',
                     './/node[@class=\'disk\']/serial',
@@ -353,6 +353,38 @@ def hardware(hosts, outdir):
     return sanitized
 
 
+def hwloc(hosts, outdir):
+    """ """
+    save_dir = outdir + '/lshw/'
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+    shosts = map(get_host_shortname, hosts)
+    cmd = 'mkdir -p /tmp/hwloc ; hwloc-ls --of xml > /tmp/hwloc/{{shosts}}.xml'
+    hwloc = TaktukRemote(cmd, hosts).run()
+    get_hwloc = Get(hosts, ['/tmp/hwloc/{{shosts}}.xml'],
+                   local_location=save_dir).run()
+    if not hwloc.ok or not get_hwloc.ok:
+        return None
+
+    sanitized = {}
+    for f in os.listdir(save_dir):
+        host = f.split('.')[0]
+        xml = ET.parse(outdir + '/lshw/' + f)
+        doc = xml.getroot()
+        clear_paths = ['.//info[@name=\'HostName\']',
+                       './/info[@name=\'Address\']',
+                       './/info[@name=\'DMIProductUUID\']',
+                       './/info[@name=\'DMIProductSerial\']',
+                       './/info[@name=\'DMIBoardSerial\']',
+                       './/info[@name=\'DMIChassisSerial\']']
+        for path in clear_paths:
+            for serial in doc.findall(path):
+                serial.clear()
+
+        sanitized[host] = ET.tostring(doc)
+    return sanitized
+
+
 def _unidiff_output(expected, actual):
     """
     Helper function. Returns a string containing the unified diff of two
@@ -371,12 +403,14 @@ def _unidiff_output(expected, actual):
 # Benchmarking methods functions
 def run_benchmarks(hosts, args):
     """ """
-    for test in args.tests.split(',') * args.n_measures:
-        clear_cache(hosts)
-        logger.info(style.user3('Starting ' + test.upper() + ' test'))
-        bench_results = getattr(__main__, test)(hosts)
-        print_bench_result(test, bench_results, args.full)
-        save_bench_results(test, bench_results, args.outdir)
+    for test in args.tests.split(','):
+        logger.info(style.user3('Starting %s test' % (test.upper())))
+        for i in range(args.n_measures):
+            clear_cache(hosts)
+            logger.info('Performing measurement %s/%s', i + 1, args.n_measures)
+            bench_results = getattr(__main__, test)(hosts)
+            print_bench_result(test, bench_results, args.full)
+            save_bench_results(test, bench_results, args.outdir)
         logger.info(style.user3(test.upper() + ' test done') + '\n')
 
 
@@ -408,7 +442,10 @@ def cpu_multi(hosts, max_prime=100000):
 def memory(hosts):
     """Execute a memory intensive test that use the whole memory of the node"""
     n_core = get_host_attributes(hosts[0])['architecture']['smt_size']
-    mem_size = get_host_attributes(hosts[0])['main_memory']['ram_size']
+    mem_size = int(ceil(get_host_attributes(hosts[0])['main_memory']['ram_size']
+                        * 0.95))
+    # mem_size must be a multiple of 4 in sysbench
+    mem_size = mem_size - mem_size % 4
     cmd = 'sysbench --test=memory --num-threads=%s --memory-block-size=%s ' \
         'run %s' % (n_core, mem_size, _sys_grep)
     logger.info('Launching MEM benchmark with \n%s', style.command(cmd))
@@ -425,9 +462,10 @@ def fio(hosts):
     n_core = attr['architecture']['smt_size']
     perf = float(attr['performance']['node_flops'])
     filesize = int(ceil(float(perf) / 2. / 10 ** 9))
+
     if filesize == 0:
         logger.warning('No performance information in Reference API for %s',
-                       get_host_shortname(hosts[0]).address)
+                       get_host_shortname(hosts[0]))
         filesize = 10
     cmd = Template("cd /tmp && sysbench --num-threads=%s --test=fileio "
                    "--file-total-size=%sG --file-test-mode=seqwr "
@@ -487,7 +525,6 @@ def lat_hosts(hosts, n_ping=10):
     for p in fping.processes:
         src = get_host_shortname(p.host.address).split('-')[1]
         for h_res in p.stdout.strip().split('\n'):
-            print h_res
             h, tmpres = h_res.split()
             dst = get_host_shortname(h).split('-')[1]
             res = tmpres.split('/')[1]
@@ -645,8 +682,9 @@ def parse_hosts_perf(act):
 
 def clear_cache(hosts):
     """ """
-    clear = TaktukRemote('killall sysbench; sync; echo 3 > '
-                         '/proc/sys/vm/drop_caches',
+    clear = TaktukRemote('sync; echo 3 > '
+                         '/proc/sys/vm/drop_caches ;'
+                         'umount /tmp; sleep 5; mount /tmp',
                          hosts).run()
     sleep(2)
     return clear.ok
@@ -670,97 +708,6 @@ def default_job(job_name, cluster, walltime, now=False):
                                  name=job_name),
                    get_cluster_site(cluster))]
     return oarsub(jobs_specs)[0]
-
-#
-#    print _unidiff_output(lshw.processes[0].stdout, lshw.processes[1].stdout)
-#    exit()
-#    print _unidiff_output(lshw.processes[0].stdout, lshw.processes[2].stdout)
-#    print _unidiff_output(lshw.processes[0].stdout, lshw.processes[3].stdout)
-#
-#    sanitized = {}
-#    for p in lshw.processes:
-#        print p.stdout
-#        print p.host
-#        sanitized[p.host.address] = _sanitize_lshw_output(p.stdout.strip())
-#
-#    pprint(sanitized)
-#    def _sanitize_lshw(output):
-#
-#
-#        # set value = '' for several paths
-#
-#
-#        return ET.tostring(doc)
-#    def _sanitize_hwloc(output):
-#        """ """
-#        parser = ET.XMLParser(encoding="utf-8")
-#        doc = ET.fromstring(output, parser=parser)
-#        # remove some paths
-#        clear_paths = ['.//info[@name=\'HostName\']',
-#                       './/info[@name=\'Address\']',
-#                       './/info[@name=\'DMIProductUUID\']',
-#                       './/info[@name=\'DMIProductSerial\']',
-#                       './/info[@name=\'DMIBoardSerial\']',
-#                       './/info[@name=\'DMIChassisSerial\']']
-#        for path in clear_paths:
-#            for el in doc.findall(path):
-#                el.clear()
-#
-#        return ET.tostring(doc)
-#    def _sanitize_lspci(output):
-#        """ """
-#        return re.sub('Serial Number.*', 'Serial Number', output)
-
-#    # LSPCI
-#    cmd = 'lspci -v'
-#    hwloc = TaktukRemote(cmd, hosts).run()
-#    sanitized = {}
-#    for p in hwloc.processes:
-#        sanitized[p.host.address] = _sanitize_lspci(p.stdout.strip())
-#    grouped = _group_hosts_by_values(sanitized)
-#    if len(grouped.keys()) > 1:
-#        logger.warning('Not homogeneous for hwloc')
-#        for i, val in enumerate(grouped.values()):
-#            print val
-#            print _unidiff_output(grouped.keys()[0], grouped.keys()[i])
-#
-#    exit()
-#
-#    from pprint import pprint
-    # HWLOC
-#    cmd = 'hwloc-ls --of xml'
-#    hwloc = TaktukRemote(cmd, hosts).run()
-#    sanitized = {}
-#    for p in hwloc.processes:
-#        sanitized[p.host.address] = _sanitize_hwloc_output(p.stdout.strip())
-#
-#    grouped = _group_hosts_by_values(sanitized)
-#    if len(grouped.keys()) > 1:
-#        logger.warning('Not homogeneous for hwloc')
-#        print grouped.values()
-#        print _unidiff_output(grouped.keys()[0], grouped.keys()[1])
-#
-#    exit()
-##    logger.setLevel('DEBUG')
-#    # LSHW
-#
-#def _fix_sysctl_stdout(diff):
-#    """ """
-#    # command output of sysctl is sometimes printed on two lines
-#    fix_diff = ''
-#    for l in diff.split('\n'):
-#        if len(l) == 0:
-#            continue
-#        if l[0] == '+' or l[0] == '-':
-#            if not '=' in l:
-#                merge = l
-#                continue
-#            if merge:
-#                fix_diff += merge + l
-#                merge = None
-#        else:
-#            fix_diff += l
-#    return fix_diff
 
 
 if __name__ == "__main__":
