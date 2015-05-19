@@ -407,7 +407,7 @@ def run_benchmarks(hosts, args):
         logger.info(style.user3('Starting %s test' % (test.upper())))
         for i in range(args.n_measures):
             clear_cache(hosts)
-            logger.info('Performing measurement %s/%s', i + 1, args.n_measures)
+            logger.info(style.emph('%s/%s' % (i + 1, args.n_measures)))
             bench_results = getattr(__main__, test)(hosts)
             print_bench_result(test, bench_results, args.full)
             save_bench_results(test, bench_results, args.outdir)
