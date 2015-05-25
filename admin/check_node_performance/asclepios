@@ -14,6 +14,7 @@
 
 
 import os
+import sys
 import re
 import time
 import numpy as np
@@ -34,7 +35,6 @@ from execo_g5k.planning import get_job_by_name
 from execo_g5k.utils import g5k_args_parser, hosts_list
 from execo_engine import copy_outputs
 
-default_connection_params['user'] = 'root'
 configuration['color_styles']['OK'] = 'green',  'bold'
 configuration['color_styles']['KO'] = 'red', 'bold'
 _sys_grep = '| grep "execution time" | awk \'{print $4}\' | cut -d / -f 1'
@@ -42,7 +42,7 @@ _sys_grep = '| grep "execution time" | awk \'{print $4}\' | cut -d / -f 1'
 
 def main():
     """(A)utomatic (S)imilarity (CL)uster (E)valuation for (P)erformance, (IO)
-    and network (S)peed, asclepios, is a tool that allow to check the 
+    and network (S)peed, asclepios, is a tool that allow to check the
     performance homogeneity of a Grid'5000 cluster for cpu, memory, disk,
     network latency and bandwidth. If performs the following actions:
     - retrieve the nodes of the cluster
@@ -52,27 +52,33 @@ def main():
 
     See -h for help. Based on execo-2.5."""
 
-    args = init_options()
-    logger.info(style.log_header('Retrieving hosts'))
-    hosts = get_hosts(args.job, args.cluster, args.walltime,
-                                  args.now, args.hosts_file)
+    try:
+        args = init_options()
+        logger.info(style.log_header('Retrieving hosts'))
+        job_id, hosts = get_hosts(args.job, args.cluster, args.walltime,
+                                      args.now, args.hosts_file)
 
-    logger.info(style.log_header('Deploying hosts and installing packages'))
-    hosts = setup_hosts(hosts,
-                        args.env, args.forcedeploy, args.nodeploy,
-                        args.packages)
+        logger.info(style.log_header('Hosts configuration'))
+        hosts = setup_hosts(hosts,
+                            args.env, args.forcedeploy, args.nodeploy,
+                            args.packages)
 
-    logger.info(style.log_header('Checking hosts configuration'))
-    conf_checks(hosts, args)
+        logger.info(style.log_header('Checking hosts configuration'))
+        conf_checks(hosts, args)
 
-    logger.info('%s \n%s', style.log_header('Running benchmarks'),
-                style.emph(args.tests))
-    run_benchmarks(hosts, args)
-
-    if args.kill_job:
-        logger.info('Destroying job')
-        job_id, site = get_job_by_name(args.job)
-        oardel([(job_id, site)])
+        logger.info('%s \n%s', style.log_header('Running benchmarks'),
+                    style.emph(args.tests))
+        run_benchmarks(hosts, args)
+    except:
+        print "Unexpected error:", sys.exc_info()
+        raise
+    finally:
+        if args.kill_job:
+            logger.info('Destroying job')
+            job_id, site = get_job_by_name(args.job)
+            oardel([(job_id, site)])
+        else:
+            logger.info('Job %s kept alive on %s', job_id, site)
 
 
 # Execution functions
@@ -155,6 +161,7 @@ def init_options(args=None):
 def get_hosts(job_name, cluster, walltime, now=False, hosts_file=None):
     """Retrieve the job from the job_name, perform a new job if none found
     and return the list of hosts"""
+    job_id = None
     if not hosts_file:
         site = get_cluster_site(cluster)
         if job_name.isdigit():
@@ -179,55 +186,58 @@ def get_hosts(job_name, cluster, walltime, now=False, hosts_file=None):
         with open(hosts_file) as f:
             hosts.append(f.readline())
 
-    return hosts
+
+    return job_id, hosts
 
 
 def setup_hosts(hosts, env, force_deploy, no_deploy, packages=None):
     """Deploy a wheezy-x64-prod environment, configure SSH,
     install some packages and """
-    logger.info('Deploying hosts')
-    check = 'ls /root' if not force_deploy else False
-    num_tries = int(not no_deploy)
-    if os.path.exists(env):
-        env_file, user, env_name = env, None, None
-    elif ':' in env:
-        env_file = None
-        user, env_name = env.split(':')
-    else:
-        env_file, user, env_name = None, None, env
+    if not no_deploy or force_deploy:
+        default_connection_params['user'] = 'root'
+        logger.info('Deploying hosts')
+        check = 'ls /root' if not force_deploy else False
+        num_tries = int(not no_deploy)
+        if os.path.exists(env):
+            env_file, user, env_name = env, None, None
+        elif ':' in env:
+            env_file = None
+            user, env_name = env.split(':')
+        else:
+            env_file, user, env_name = None, None, env
 
-    deployed, undeployed = deploy(Deployment(hosts=hosts,
-                                             env_name=env_name,
-                                             env_file=env_file,
-                                             user=user),
-                                  num_tries=num_tries,
-                                  check_deployed_command=check)
-    if len(undeployed) > 0:
-        logger.warning('%s have not been deployed',
-                       hosts_list(list(undeployed)))
-    hosts = list(deployed)
-    hosts.sort(key=lambda h: (h.split('.', 1)[0].split('-')[0],
-                              int(h.split('.', 1)[0].split('-')[1])))
+        deployed, undeployed = deploy(Deployment(hosts=hosts,
+                                                 env_name=env_name,
+                                                 env_file=env_file,
+                                                 user=user),
+                                      num_tries=num_tries,
+                                      check_deployed_command=check)
+        if len(undeployed) > 0:
+            logger.warning('%s have not been deployed',
+                           hosts_list(list(undeployed)))
+        hosts = list(deployed)
+        hosts.sort(key=lambda h: (h.split('.', 1)[0].split('-')[0],
+                                  int(h.split('.', 1)[0].split('-')[1])))
 
-    taktuk_conf = ('-s', '-S',
-                   '$HOME/.ssh/id_rsa:$HOME/.ssh/id_rsa,' +
-                   '$HOME/.ssh/id_rsa.pub:$HOME/.ssh')
-    conf_ssh = TaktukRemote('echo "Host *" >> /root/.ssh/config ;' +
-                            'echo " StrictHostKeyChecking no" >> ' +
-                            '/root/.ssh/config; ',
-                            hosts, connection_params={'taktuk_options':
-                                                      taktuk_conf}).run()
-    if not conf_ssh.ok:
-        logger.error('Unable to configure SSH')
-        exit()
-    if packages:
-        logger.info('Installing ' + style.emph(' '.join(packages.split(','))))
-        cmd = 'apt-get update && apt-get install -y ' + \
-            packages.replace(',', ' ')
-        install_pkg = TaktukRemote(cmd, hosts).run()
-        if not install_pkg.ok:
-            logger.error('Unable to install sysbench')
+        taktuk_conf = ('-s', '-S',
+                       '$HOME/.ssh/id_rsa:$HOME/.ssh/id_rsa,' +
+                       '$HOME/.ssh/id_rsa.pub:$HOME/.ssh')
+        conf_ssh = TaktukRemote('echo "Host *" >> /root/.ssh/config ;' +
+                                'echo " StrictHostKeyChecking no" >> ' +
+                                '/root/.ssh/config; ',
+                                hosts, connection_params={'taktuk_options':
+                                                          taktuk_conf}).run()
+        if not conf_ssh.ok:
+            logger.error('Unable to configure SSH')
             exit()
+        if packages:
+            logger.info('Installing ' + style.emph(' '.join(packages.split(','))))
+            cmd = 'apt-get update && apt-get install -y ' + \
+                packages.replace(',', ' ')
+            install_pkg = TaktukRemote(cmd, hosts).run()
+            if not install_pkg.ok:
+                logger.error('Unable to install %s', packages)
+                exit()
 
     return hosts
 
@@ -282,9 +292,9 @@ def kernel(hosts, outdir):
                     'kernel.ns_last_pid', 'kernel.pty.nr',
                     '.max_newidle_lb_cost',
                     'kernel.sched_domain.cpu.*.domain1.max_newidle_lb_cost',
-                    'fs.inode-nr', 'fs.inode-state',
+                    'fs.inod    e-nr', 'fs.inode-state',
                     'fs.dentry-state', 'fs.file-nr', 'fs.file-max']
-    cmd = 'echo "`uname -srvmpio ; lsmod | sort ; sysctl -a`" | ' + \
+    cmd = 'echo "`uname -srvmpio ; lsmod | sort ; /sbin/sysctl -a | sort`" | ' + \
         ' | '.join(['grep -v ' + pattern for pattern in ignored_lines])
     if len(hosts) > 250:
         logger.warning('TAKTUK MAY SPLIT THE OUTPUT OF sysctl')
@@ -404,10 +414,13 @@ def _unidiff_output(expected, actual):
 # Benchmarking methods functions
 def run_benchmarks(hosts, args):
     """ """
+    default_tests = {'cpu_mono': {'cmd': '', 'vars_func': {}}}
+
     for test in args.tests.split(','):
         logger.info(style.user3('Starting %s test' % (test.upper())))
         for i in range(args.n_measures):
-            clear_cache(hosts)
+            if default_connection_params['user'] == 'root':
+                clear_cache(hosts)
             logger.info(style.emph('%s/%s' % (i + 1, args.n_measures)))
             bench_results = getattr(__main__, test)(hosts)
             print_bench_result(test, bench_results, args.full)
@@ -476,7 +489,7 @@ def fio(hosts):
                            hosts).run()
     if not prepare.ok:
         logger.error('Unable to prepare the data for FIO benchmark\n%s',
-                     '\n'.join([p.host.address + ': ' + p.stout.strip()
+                     '\n'.join([p.host.address + ': ' + p.stdout.strip()
                                 for p in prepare.processes]))
         return {}
     logger.info('Launching FIO benchmark with \n%s',
@@ -488,7 +501,7 @@ def fio(hosts):
                          hosts).run()
     if not clean.ok:
         logger.error('Unable to clean the data for FIO benchmark\n%s',
-                     '\n'.join([p.host.address + ': ' + p.stout.strip()
+                     '\n'.join([p.host.address + ': ' + p.stdout.strip()
                                 for p in clean.processes]))
         return {}
 
