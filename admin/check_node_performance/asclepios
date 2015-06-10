@@ -52,11 +52,11 @@ def main():
 
     See -h for help. Based on execo-2.5."""
 
+    args = init_options()
     try:
-        args = init_options()
         logger.info(style.log_header('Retrieving hosts'))
         job_id, hosts = get_hosts(args.job, args.cluster, args.walltime,
-                                      args.now, args.hosts_file)
+                                  args.now, args.hosts_file)
 
         logger.info(style.log_header('Hosts configuration'))
         hosts = setup_hosts(hosts,
@@ -73,12 +73,13 @@ def main():
         print "Unexpected error:", sys.exc_info()
         raise
     finally:
-        if args.kill_job:
-            logger.info('Destroying job')
-            job_id, site = get_job_by_name(args.job)
-            oardel([(job_id, site)])
-        else:
-            logger.info('Job %s kept alive on %s', job_id, site)
+        if not args.error:
+            if args.kill_job:
+                logger.info('Destroying job')
+                job_id, site = get_job_by_name(args.job)
+                oardel([(job_id, site)])
+            else:
+                logger.info('Job %s kept alive on %s', job_id, site)
 
 
 # Execution functions
@@ -96,7 +97,7 @@ def init_options(args=None):
                              deploy=True,
                              outdir=True)
     default_tests = 'cpu_mono,cpu_multi,memory,fio,' + \
-        'lat_gw,bw_frontend,lat_hosts,bw_oneone'
+        'lat_gw,lat_hosts,bw_oneone'
     parser.add_argument('-t', '--tests',
                         default=default_tests,
                         help='comma separated list of tests')
@@ -116,16 +117,19 @@ def init_options(args=None):
     parser.add_argument('--env',
                         default="jessie-x64-base",
                         help='Select environment name, such as '
-                            'jessie-x64-base or user:myenv or the path'
-                            'to the env file.')
+                             'jessie-x64-base or user:myenv or the path'
+                             'to the env file.')
     parser.add_argument('--packages',
                         default="sysbench,fping,iperf,lshw,hwloc",
                         help='List of packages to install')
     parser.add_argument('--hosts-file',
                         help='The path to a file containing the list of hosts')
 
+    args = parser.parse_args()
+
     if not args:
-        args = parser.parse_args()
+        parser.print_help()
+        exit()
 
     if args.verbose:
         logger.setLevel('DEBUG')
@@ -133,12 +137,12 @@ def init_options(args=None):
         logger.setLevel('WARN')
     else:
         logger.setLevel('INFO')
-    if args.cluster not in get_g5k_clusters() and not args.hosts_file:
-        logger.error('cluster %s is not a valid g5k cluster, specify it'
-                     'with -c ', style.emph(args.cluster))
-        exit()
     if args.hosts_file:
         args.cluster = 'custom'
+    elif args.cluster not in get_g5k_clusters():
+        logger.error('cluster is not a valid g5k cluster, specify it '
+                     'with -c or use --hosts-file option')
+        exit()
 
     if isinstance(args.job, bool):
         args.job = 'asclepios_' + args.cluster
@@ -150,10 +154,10 @@ def init_options(args=None):
                  args.outdir + '/run_' + args.cluster + '.log')
 
     logger.info(style.user3(' ASCLEPIOS \n(A)utomatic (S)imilarity (CL)uster '
-            '(E)valuation for (P)erformance, (IO) and network (S)peed'))
-    logger.info('%s %s',
-               style.host(args.cluster),
-               get_cluster_attributes(args.cluster)['model'])
+                            '(E)valuation for (P)erformance, (IO) and network '
+                            '(S)peed'))
+    logger.info('%s %s', style.host(args.cluster),
+                get_cluster_attributes(args.cluster)['model'])
 
     return args
 
@@ -185,7 +189,6 @@ def get_hosts(job_name, cluster, walltime, now=False, hosts_file=None):
         hosts = []
         with open(hosts_file) as f:
             hosts.append(f.readline())
-
 
     return job_id, hosts
 
