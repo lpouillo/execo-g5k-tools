@@ -10,8 +10,6 @@ from execo.process import SshProcess
 from execo.config import default_connection_params
 from execo.action import Put
 
-logger.setLevel('DEBUG')
-
 if "lyon" not in getfqdn():
     logger.error('Must be executed from Lyon')
     exit()
