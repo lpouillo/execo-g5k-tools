@@ -32,8 +32,9 @@ from execo_g5k import get_planning, compute_slots, get_resource_attributes, \
     get_host_shortname, oardel, get_g5k_clusters, find_first_slot, g5k_graph, \
     get_cluster_attributes
 from execo_g5k.planning import get_job_by_name
-from execo_g5k.utils import g5k_args_parser, hosts_list
+from execo_g5k.utils import hosts_list
 from execo_engine import copy_outputs
+from argparse import ArgumentParser
 
 configuration['color_styles']['OK'] = 'green',  'bold'
 configuration['color_styles']['KO'] = 'red', 'bold'
@@ -52,17 +53,16 @@ def main():
 
     See -h for help. Based on execo-2.5."""
 
-    args = init_options()
     try:
+        args = init_options()
         logger.info(style.log_header('Retrieving hosts'))
         job_id, hosts = get_hosts(args.job, args.cluster, args.walltime,
-                                  args.now, args.hosts_file)
+                                      args.now, args.hosts_file)
 
         logger.info(style.log_header('Hosts configuration'))
         hosts = setup_hosts(hosts,
-                            args.env, args.forcedeploy, args.nodeploy,
+                            args.env, args.force_deploy, args.no_deploy,
                             args.packages)
-
         logger.info(style.log_header('Checking hosts configuration'))
         conf_checks(hosts, args)
 
@@ -73,13 +73,12 @@ def main():
         print "Unexpected error:", sys.exc_info()
         raise
     finally:
-        if not args.error:
-            if args.kill_job:
-                logger.info('Destroying job')
-                job_id, site = get_job_by_name(args.job)
-                oardel([(job_id, site)])
-            else:
-                logger.info('Job %s kept alive on %s', job_id, site)
+        job_id, site = get_job_by_name(args.job)
+        if args.kill_job:
+            logger.info('Destroying job')
+            oardel([(job_id, site)])
+        else:
+            logger.info('Job %s kept alive on %s', job_id, site)
 
 
 # Execution functions
@@ -87,17 +86,24 @@ def init_options(args=None):
     """Define the options, set log level and create some default values if
     some options are not set"""
 
-    parser = g5k_args_parser(description="Reserve all the available nodes on "
+    parser = ArgumentParser(description="Reserve all the available nodes on "
                              "a cluster and check that nodes exhibits same "
-                             "performance for cpu, disk, network",
-                             cluster=True,
-                             walltime='2:00:00',
-                             loglevel=True,
-                             job=True,
-                             deploy=True,
-                             outdir=True)
+                             "performance for cpu, disk, network")
     default_tests = 'cpu_mono,cpu_multi,memory,fio,' + \
-        'lat_gw,lat_hosts,bw_oneone'
+        'lat_gw,bw_frontend,lat_hosts,bw_oneone'
+    parser.add_argument('-c', '--cluster',
+                        help='Name of the cluster')
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument('-v', '--verbose',
+                      action="store_true")
+    mode.add_argument('-q', '--quiet',
+                      action="store_true")
+    job = parser.add_mutually_exclusive_group()
+    job.add_argument('-j', '--job',
+                     help='OAR job number or name')
+    job.add_argument('-w', '--walltime',
+                     default="1:00:00",
+                     help='walltime for the reservation')
     parser.add_argument('-t', '--tests',
                         default=default_tests,
                         help='comma separated list of tests')
@@ -115,21 +121,25 @@ def init_options(args=None):
                         action="store_true",
                         help='print all the measures')
     parser.add_argument('--env',
-                        default="jessie-x64-base",
+                        default="wheezy-x64-base",
                         help='Select environment name, such as '
-                             'jessie-x64-base or user:myenv or the path'
-                             'to the env file.')
+                            'jessie-x64-base or user:myenv or the path'
+                            'to the env file.')
     parser.add_argument('--packages',
                         default="sysbench,fping,iperf,lshw,hwloc",
                         help='List of packages to install')
     parser.add_argument('--hosts-file',
                         help='The path to a file containing the list of hosts')
-
-    args = parser.parse_args()
+    parser.add_argument('-o', '--outdir',
+                        help='The name of the directory where results will'
+                        'be saved')
+    parser.add_argument('--force-deploy',
+                        action="store_true")
+    parser.add_argument('--no-deploy',
+                        action="store_true")
 
     if not args:
-        parser.print_help()
-        exit()
+        args = parser.parse_args()
 
     if args.verbose:
         logger.setLevel('DEBUG')
@@ -137,14 +147,14 @@ def init_options(args=None):
         logger.setLevel('WARN')
     else:
         logger.setLevel('INFO')
+    if args.cluster not in get_g5k_clusters() and not args.hosts_file:
+        logger.error('cluster %s is not a valid g5k cluster, specify it'
+                     'with -c ', style.emph(args.cluster))
+
     if args.hosts_file:
         args.cluster = 'custom'
-    elif args.cluster not in get_g5k_clusters():
-        logger.error('cluster is not a valid g5k cluster, specify it '
-                     'with -c or use --hosts-file option')
-        exit()
 
-    if isinstance(args.job, bool):
+    if not args.job:
         args.job = 'asclepios_' + args.cluster
     if isinstance(args.outdir, bool):
         args.outdir = args.cluster + '_' + time.strftime("%Y%m%d_%H%M%S_%z")
@@ -154,10 +164,10 @@ def init_options(args=None):
                  args.outdir + '/run_' + args.cluster + '.log')
 
     logger.info(style.user3(' ASCLEPIOS \n(A)utomatic (S)imilarity (CL)uster '
-                            '(E)valuation for (P)erformance, (IO) and network '
-                            '(S)peed'))
-    logger.info('%s %s', style.host(args.cluster),
-                get_cluster_attributes(args.cluster)['model'])
+            '(E)valuation for (P)erformance, (IO) and network (S)peed'))
+    logger.info('%s %s',
+               style.host(args.cluster),
+               get_cluster_attributes(args.cluster)['model'])
 
     return args
 
@@ -247,7 +257,6 @@ def setup_hosts(hosts, env, force_deploy, no_deploy, packages=None):
 
 def conf_checks(hosts, args):
     """ """
-
     def _group_hosts_by_values(results):
         groups = {}
         for k, v in results.iteritems():
@@ -268,7 +277,7 @@ def conf_checks(hosts, args):
                             hosts_list(groups[k]), _unidiff_output(ref, k))
 
     tests = {'kernel': 'Kernel configurations',
-             'hardware': 'Detected hardware',
+             'hardware': '     hardware',
              'hwloc': 'Hardware locality'}
     for t, mes in tests.iteritems():
         logger.info(mes)
@@ -286,6 +295,8 @@ def conf_checks(hosts, args):
 def kernel(hosts, outdir):
     """Retrieve informations about kernel version, loaded module
     and kernel configuration"""
+    print hosts
+    exit()
     save_dir = outdir + '/kernel/'
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
@@ -295,7 +306,7 @@ def kernel(hosts, outdir):
                     'kernel.ns_last_pid', 'kernel.pty.nr',
                     '.max_newidle_lb_cost',
                     'kernel.sched_domain.cpu.*.domain1.max_newidle_lb_cost',
-                    'fs.inod    e-nr', 'fs.inode-state',
+                    'fs.inode-nr', 'fs.inode-state',
                     'fs.dentry-state', 'fs.file-nr', 'fs.file-max']
     cmd = 'echo "`uname -srvmpio ; lsmod | sort ; /sbin/sysctl -a | sort`" | ' + \
         ' | '.join(['grep -v ' + pattern for pattern in ignored_lines])
