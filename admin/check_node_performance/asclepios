@@ -295,8 +295,7 @@ def conf_checks(hosts, args):
 def kernel(hosts, outdir):
     """Retrieve informations about kernel version, loaded module
     and kernel configuration"""
-    print hosts
-    exit()
+
     save_dir = outdir + '/kernel/'
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
