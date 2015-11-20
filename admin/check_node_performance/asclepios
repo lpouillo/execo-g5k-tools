@@ -53,8 +53,8 @@ def main():
 
     See -h for help. Based on execo-2.5."""
 
+    args = init_options()
     try:
-        args = init_options()
         logger.info(style.log_header('Retrieving hosts'))
         job_id, hosts = get_hosts(args.job, args.cluster, args.walltime,
                                       args.now, args.hosts_file)
@@ -63,22 +63,28 @@ def main():
         hosts = setup_hosts(hosts,
                             args.env, args.force_deploy, args.no_deploy,
                             args.packages)
-        logger.info(style.log_header('Checking hosts configuration'))
-        conf_checks(hosts, args)
+        if args.hosts_configuration:
+            logger.info(style.log_header('Checking hosts configuration'))
+            conf_checks(hosts, args)
 
         logger.info('%s \n%s', style.log_header('Running benchmarks'),
                     style.emph(args.tests))
         run_benchmarks(hosts, args)
+    except KeyboardInterrupt:
+        logger.info('Exiting ...')
+        pass
     except:
         print "Unexpected error:", sys.exc_info()
         raise
     finally:
-        job_id, site = get_job_by_name(args.job)
+        job_id, site = get_job_by_name(args.job,
+                                       [get_cluster_site(args.cluster)])
         if args.kill_job:
             logger.info('Destroying job')
             oardel([(job_id, site)])
         else:
-            logger.info('Job %s kept alive on %s', job_id, site)
+            logger.info('Job %s kept alive on %s',  style.emph(job_id),
+                        style.host(site))
 
 
 # Execution functions
@@ -89,7 +95,7 @@ def init_options(args=None):
     parser = ArgumentParser(description="Reserve all the available nodes on "
                              "a cluster and check that nodes exhibits same "
                              "performance for cpu, disk, network")
-    default_tests = 'cpu_mono,cpu_multi,memory,fio,' + \
+    default_tests = 'cpu_mono,cpu_multi,memory,fio_write,' + \
         'lat_gw,bw_frontend,lat_hosts,bw_oneone'
     parser.add_argument('-c', '--cluster',
                         help='Name of the cluster')
@@ -126,7 +132,7 @@ def init_options(args=None):
                             'jessie-x64-base or user:myenv or the path'
                             'to the env file.')
     parser.add_argument('--packages',
-                        default="sysbench,fping,iperf,lshw,hwloc",
+                        default="sysbench,fping,iperf,lshw,hwloc,fio",
                         help='List of packages to install')
     parser.add_argument('--hosts-file',
                         help='The path to a file containing the list of hosts')
@@ -136,6 +142,8 @@ def init_options(args=None):
     parser.add_argument('--force-deploy',
                         action="store_true")
     parser.add_argument('--no-deploy',
+                        action="store_true")
+    parser.add_argument('--hosts-configuration',
                         action="store_true")
 
     if not args:
@@ -147,16 +155,20 @@ def init_options(args=None):
         logger.setLevel('WARN')
     else:
         logger.setLevel('INFO')
+
     if args.cluster not in get_g5k_clusters() and not args.hosts_file:
-        logger.error('cluster %s is not a valid g5k cluster, specify it'
-                     'with -c ', style.emph(args.cluster))
+        logger.error('cluster %s is not a valid g5k cluster, specify it '
+                     'with -c or use --hosts-file option',
+                     style.emph(args.cluster))
+        exit()
 
     if args.hosts_file:
         args.cluster = 'custom'
 
     if not args.job:
         args.job = 'asclepios_' + args.cluster
-    if isinstance(args.outdir, bool):
+
+    if not args.outdir:
         args.outdir = args.cluster + '_' + time.strftime("%Y%m%d_%H%M%S_%z")
     if not os.path.exists(args.outdir):
         os.mkdir(args.outdir)
@@ -277,7 +289,7 @@ def conf_checks(hosts, args):
                             hosts_list(groups[k]), _unidiff_output(ref, k))
 
     tests = {'kernel': 'Kernel configurations',
-             'hardware': '     hardware',
+             'hardware': 'Detected hardware',
              'hwloc': 'Hardware locality'}
     for t, mes in tests.iteritems():
         logger.info(mes)
@@ -326,7 +338,9 @@ def kernel(hosts, outdir):
 
 
 def hardware(hosts, outdir):
-    """ """
+    """Use lshw to extract detected hardware, which removal of unique elements
+    such as serial numbers.
+    """
     save_dir = outdir + '/lshw/'
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
@@ -378,7 +392,7 @@ def hardware(hosts, outdir):
 
 
 def hwloc(hosts, outdir):
-    """ """
+    """Use hwloc to """
     save_dir = outdir + '/hwloc/'
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
@@ -427,8 +441,6 @@ def _unidiff_output(expected, actual):
 # Benchmarking methods functions
 def run_benchmarks(hosts, args):
     """ """
-    default_tests = {'cpu_mono': {'cmd': '', 'vars_func': {}}}
-
     for test in args.tests.split(','):
         logger.info(style.user3('Starting %s test' % (test.upper())))
         for i in range(args.n_measures):
@@ -483,7 +495,41 @@ def memory(hosts):
     return results
 
 
-def fio(hosts):
+def fio_write(hosts):
+    """ """
+    cmd = "fio --ioengine=libaio --direct=1 --bs=4m --size=1g " + \
+        "--directory=/tmp --iodepth=32 --name=file1 --rw=write |" + \
+        "grep aggrb |  awk \'{print $3}\' | cut -d '=' -f 2"
+    logger.info('Launching WRITE benchmark with \n%s', style.command(cmd))
+    write_test = TaktukRemote(cmd, hosts).run()
+
+    for p in write_test.processes:
+        non_decimal = re.compile(r'[^\d.]+')
+        p.stdout = non_decimal.sub('', p.stdout)
+
+    results = parse_hosts_perf(write_test)
+
+    return results
+
+
+def fio_read(hosts):
+    """ """
+    cmd = "fio --ioengine=libaio --direct=1 --bs=4m --size=1g " + \
+        "--directory=/tmp --iodepth=32 --name=file1 --rw=read |" + \
+        "grep aggrb |  awk \'{print $3}\' | cut -d '=' -f 2"
+    logger.info('Launching READ benchmark with \n%s', style.command(cmd))
+    write_test = TaktukRemote(cmd, hosts).run()
+
+    for p in write_test.processes:
+        non_decimal = re.compile(r'[^\d.]+')
+        p.stdout = non_decimal.sub('', p.stdout)
+
+    results = parse_hosts_perf(write_test)
+
+    return results
+
+
+def sysbench_fio(hosts):
     """Execute sequential read write """
     attr = get_host_attributes(hosts[0])
     n_core = attr['architecture']['smt_size']
