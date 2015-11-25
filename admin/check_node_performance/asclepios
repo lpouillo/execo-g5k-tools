@@ -17,6 +17,7 @@ import os
 import sys
 import re
 import time
+import difflib
 import numpy as np
 import __main__
 from xml.etree import ElementTree as ET
@@ -35,6 +36,7 @@ from execo_g5k.planning import get_job_by_name
 from execo_g5k.utils import hosts_list
 from execo_engine import copy_outputs
 from argparse import ArgumentParser
+from execo.process import Process
 
 configuration['color_styles']['OK'] = 'green',  'bold'
 configuration['color_styles']['KO'] = 'red', 'bold'
@@ -96,7 +98,7 @@ def init_options(args=None):
                              "a cluster and check that nodes exhibits same "
                              "performance for cpu, disk, network")
     default_tests = 'cpu_mono,cpu_multi,memory,fio_write,' + \
-        'lat_gw,bw_frontend,lat_hosts,bw_oneone'
+        'lat_gw,bw_frontend,lat_hosts'
     parser.add_argument('-c', '--cluster',
                         help='Name of the cluster')
     mode = parser.add_mutually_exclusive_group()
@@ -301,6 +303,9 @@ def conf_checks(hosts, args):
         else:
             logger.info(style.OK(mes + ' homogeneous '))
 
+    logger.info("Retrieving kernel log on each host")
+    dmesg(hosts, args.outdir)
+
     return True
 
 
@@ -428,14 +433,21 @@ def _unidiff_output(expected, actual):
     Helper function. Returns a string containing the unified diff of two
     multiline strings.
     """
-
-    import difflib
     expected = expected.splitlines(1)
     actual = actual.splitlines(1)
-
     diff = difflib.unified_diff(expected, actual)
 
     return ''.join(diff)
+
+
+def dmesg(hosts, outdir):
+    """Retrieve the content of kernel messages"""
+    Process("mkdir " + outdir + "/dmesg/").run()
+    dmesg = TaktukRemote("dmesg", hosts)
+    for p in dmesg.processes:
+        p.stdout_handlers.append(outdir + "/dmesg/%s.out" % (p.host.address,))
+    dmesg.run()
+    logger.info("dmesg output stored in " + outdir + "/dmesg")
 
 
 # Benchmarking methods functions
