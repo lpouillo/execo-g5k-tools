@@ -479,7 +479,7 @@ def cpu_mono(hosts, max_prime=10000):
 
 def cpu_multi(hosts, max_prime=100000):
     """Execute a stress intensive using all the core of the machine"""
-    n_core = get_host_attributes(hosts[0])['architecture']['smt_size']
+    n_core = get_host_attributes(hosts[0])['architecture']['nb_cores']
     cmd = 'sysbench --num-threads=%s --test=cpu --cpu-max-prime=%s run %s' % \
         (n_core, max_prime, _sys_grep)
     logger.info('Launching CPU_MULTI benchmark with \n%s', style.command(cmd))
@@ -492,7 +492,7 @@ def cpu_multi(hosts, max_prime=100000):
 
 def memory(hosts):
     """Execute a memory intensive test that use the whole memory of the node"""
-    n_core = get_host_attributes(hosts[0])['architecture']['smt_size']
+    n_core = get_host_attributes(hosts[0])['architecture']['nb_cores']
     mem_size = int(ceil(get_host_attributes(hosts[0])['main_memory']['ram_size']
                         * 0.95))
     # mem_size must be a multiple of 4 in sysbench
@@ -544,7 +544,7 @@ def fio_read(hosts):
 def sysbench_fio(hosts):
     """Execute sequential read write """
     attr = get_host_attributes(hosts[0])
-    n_core = attr['architecture']['smt_size']
+    n_core = attr['architecture']['nb_cores']
     perf = float(attr['performance']['node_flops'])
     filesize = int(ceil(float(perf) / 2. / 10 ** 9))
 
