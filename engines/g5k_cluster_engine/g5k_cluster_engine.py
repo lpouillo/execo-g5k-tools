@@ -49,14 +49,14 @@ class g5k_cluster_engine(Engine):
 
     def __init__(self):
         super(g5k_cluster_engine, self).__init__()
-        self.options_parser.add_option(
-            "-r", dest = "max_workers", type = "int", default = 20,
+        self.args_parser.add_argument(
+            "-r", dest = "max_workers", type = int, default = 20,
             help = "maximum number of concurrent worker jobs per cluster")
-        self.options_parser.add_option(
-            "-t", dest = "max_waiting", type = "int", default = 2,
+        self.args_parser.add_argument(
+            "-t", dest = "max_waiting", type = int, default = 2,
             help = "maximum number of concurrent waiting jobs per cluster")
-        self.options_parser.add_option(
-            "-s", dest = "schedule_delay", type = "int", default = 10,
+        self.args_parser.add_argument(
+            "-s", dest = "schedule_delay", type = int, default = 10,
             help = "delay between rescheduling worker jobs")
 
     def run(self):
@@ -100,8 +100,8 @@ class g5k_cluster_engine(Engine):
                                     th
                                     for th in sites_clusters_threads[site][cluster]
                                     if th.waiting ])
-                        num_max_new_workers = min(self.options.max_workers - num_workers,
-                                                  self.options.max_waiting - num_waiting)
+                        num_max_new_workers = min(self.args.max_workers - num_workers,
+                                                  self.args.max_waiting - num_waiting)
                         logger.trace(
                             "rescheduling on cluster %s@%s: num_workers = %s / num_waiting = %s / num_max_new_workers = %s" %
                             (cluster, site, num_workers, num_waiting, num_max_new_workers))
@@ -133,7 +133,7 @@ class g5k_cluster_engine(Engine):
                                 sites_clusters_threads[site][cluster].append(th)
                 if no_submissions and len(sites_clusters_threads) == 0:
                     break
-                sleep(self.options.schedule_delay)
+                sleep(self.args.schedule_delay)
             logger.detail("no more combinations to explore. exit schedule loop")
         finally:
             for site in sites_clusters_threads.keys():
